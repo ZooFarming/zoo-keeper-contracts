@@ -11,4 +11,8 @@ contract ZooToken is ERC20("ZooToken", "ZOO"), Ownable {
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
     }
+
+    function burn(uint256 _amount) public {
+        _burn(msg.sender, _amount);
+    }
 }

@@ -10,13 +10,23 @@ import "../token/ZooToken.sol";
 
 
 
-// WanSwapFarm is the master of ZOO. He can make ZOO and he is a fair guy.
+// ZooKeeperFarming is the master of ZOO. He can make ZOO and he is a fair guy.
 //
 // Note that it's ownable and the owner wields tremendous power. The ownership
 // will be transferred to a governance smart contract once ZOO is sufficiently
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. God bless.
+
+interface Boosting {
+
+    function deposit(uint pid, address user, uint lockTime, uint tokenId) external;
+
+    function checkWithdraw(uint pid, address user) external returns (bool);
+
+    function getMultiplier(uint pid, address user) external returns (uint); // zoom in 1e12 times;
+}
+
 contract ZooKeeperFarming is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -130,8 +140,19 @@ contract ZooKeeperFarming is Ownable {
 
     // Return reward multiplier over the given _from to _to block.
     function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
-        // TODO
-        return 0;
+        if (from >= allEndBlock) {
+            return 0;
+        }
+
+        if (to < startBlock) {
+            return 0;
+        }
+
+        if (to > allEndBlock) {
+            return allEndBlock.sub(from);
+        }
+
+        return to.sub(from);
     }
 
     // View function to see pending WASPs on frontend.
@@ -144,6 +165,11 @@ contract ZooKeeperFarming is Ownable {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
             uint256 zooReward = multiplier.mul(zooPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
             accZooPerShare = accZooPerShare.add(zooReward.mul(1e12).div(lpSupply));
+            // multiplier from lockTime and NFT
+            if (boostingAddr != address(0)) {
+                uint multiplier2 = Boosting(boostingAddr).getMultiplier(_pid, _user);
+                accZooPerShare = accZooPerShare.mul(multiplier2).div(1e12);
+            }
         }
         return user.amount.mul(accZooPerShare).div(1e12).sub(user.rewardDebt);
     }
@@ -169,21 +195,27 @@ contract ZooKeeperFarming is Ownable {
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
         uint256 zooReward = multiplier.mul(zooPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-        zoo.mint(devaddr, zooReward.div(20));
-        zoo.mint(address(this), zooReward);
+        // zoo.mint(devaddr, zooReward.div(20));
+        // zoo.mint(address(this), zooReward);
         pool.accZooPerShare = pool.accZooPerShare.add(zooReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
 
-    // Deposit LP tokens to WanSwapFarm for ZOO allocation.
-    // TODO
+    // Deposit LP tokens to ZooKeeperFarming for ZOO allocation.
     function deposit(uint256 _pid, uint256 _amount, uint lockTime, uint nftTokenId) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(pool.accZooPerShare).div(1e12).sub(user.rewardDebt);
-            safeWaspTransfer(msg.sender, pending);
+            if (boostingAddr != address(0)) {
+                // multiplier from lockTime and NFT
+                uint multiplier2 = Boosting(boostingAddr).getMultiplier(_pid, msg.sender);
+                pending = pending.mul(multiplier2).div(1e12);
+            }
+            zoo.mint(devaddr, pending.mul(28).div(100));
+            zoo.mint(address(this), pending);
+            safeZooTransfer(msg.sender, pending);
         }
         if(_amount > 0) {
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
@@ -193,36 +225,35 @@ contract ZooKeeperFarming is Ownable {
         emit Deposit(msg.sender, _pid, _amount);
     }
 
-    // Withdraw LP tokens from WanSwapFarm.
-    // TODO
+    // Withdraw LP tokens from ZooKeeperFarming.
     function withdraw(uint256 _pid, uint256 _amount) public {
+        if (boostingAddr != address(0)) {
+            require(Boosting(boostingAddr).checkWithdraw(_pid, msg.sender), "Lock time not finish");
+        }
+        
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         uint256 pending = user.amount.mul(pool.accZooPerShare).div(1e12).sub(user.rewardDebt);
+        if (boostingAddr != address(0)) {
+            // multiplier from lockTime and NFT
+            uint multiplier2 = Boosting(boostingAddr).getMultiplier(_pid, msg.sender);
+            pending = pending.mul(multiplier2).div(1e12);
+        }
+        zoo.mint(devaddr, pending.mul(28).div(100));
+        zoo.mint(address(this), pending);
+
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accZooPerShare).div(1e12);
-        safeWaspTransfer(msg.sender, pending);
+        safeZooTransfer(msg.sender, pending);
         pool.lpToken.safeTransfer(address(msg.sender), _amount);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
-    // Withdraw without caring about rewards. EMERGENCY ONLY.
-    // TODO
-    function emergencyWithdraw(uint256 _pid) public {
-        PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][msg.sender];
-        uint256 amount = user.amount;
-        user.amount = 0;
-        user.rewardDebt = 0;
-        pool.lpToken.safeTransfer(address(msg.sender), amount);
-        emit EmergencyWithdraw(msg.sender, _pid, amount);
-    }
-
     // Safe zoo transfer function, just in case if rounding error causes pool to not have enough WASPs.
-    function safeWaspTransfer(address _to, uint256 _amount) internal {
-        uint256 waspBal = zoo.balanceOf(address(this));
-        if (_amount > waspBal) {
+    function safeZooTransfer(address _to, uint256 _amount) internal {
+        uint256 zooBal = zoo.balanceOf(address(this));
+        if (_amount > zooBal) {
             zoo.transfer(_to, waspBal);
         } else {
             zoo.transfer(_to, _amount);

@@ -3,7 +3,6 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../token/ZooToken.sol";
@@ -22,9 +21,13 @@ interface Boosting {
 
     function deposit(uint pid, address user, uint lockTime, uint tokenId) external;
 
-    function checkWithdraw(uint pid, address user) external returns (bool);
+    function checkWithdraw(uint pid, address user) external view returns (bool);
 
-    function getMultiplier(uint pid, address user) external returns (uint); // zoom in 1e12 times;
+    function getMultiplier(uint pid, address user) external view returns (uint); // zoom in 1e12 times;
+}
+
+interface ExtraReward {
+    function reward(uint pid, address user) external;
 }
 
 contract ZooKeeperFarming is Ownable {
@@ -99,6 +102,7 @@ contract ZooKeeperFarming is Ownable {
         allEndBlock = _allEndBlock;
         boostingAddr = _boostingAddr;
         extraRewardAddr = _extraRewardAddr;
+        zooPerBlock = _zooPerBlock;
     }
 
     function setBoostingAddr(address _boostingAddr) public onlyOwner {
@@ -140,19 +144,19 @@ contract ZooKeeperFarming is Ownable {
 
     // Return reward multiplier over the given _from to _to block.
     function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
-        if (from >= allEndBlock) {
+        if (_from >= allEndBlock) {
             return 0;
         }
 
-        if (to < startBlock) {
+        if (_to < startBlock) {
             return 0;
         }
 
-        if (to > allEndBlock) {
-            return allEndBlock.sub(from);
+        if (_to > allEndBlock) {
+            return allEndBlock.sub(_from);
         }
 
-        return to.sub(from);
+        return _to.sub(_from);
     }
 
     // View function to see pending WASPs on frontend.
@@ -195,8 +199,6 @@ contract ZooKeeperFarming is Ownable {
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
         uint256 zooReward = multiplier.mul(zooPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-        // zoo.mint(devaddr, zooReward.div(20));
-        // zoo.mint(address(this), zooReward);
         pool.accZooPerShare = pool.accZooPerShare.add(zooReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
@@ -212,9 +214,14 @@ contract ZooKeeperFarming is Ownable {
                 // multiplier from lockTime and NFT
                 uint multiplier2 = Boosting(boostingAddr).getMultiplier(_pid, msg.sender);
                 pending = pending.mul(multiplier2).div(1e12);
+
+                Boosting(boostingAddr).deposit(_pid, msg.sender, lockTime, nftTokenId);
             }
             zoo.mint(devaddr, pending.mul(28).div(100));
             zoo.mint(address(this), pending);
+            if (extraRewardAddr != address(0)) {
+                ExtraReward(extraRewardAddr).reward(_pid, msg.sender);
+            }
             safeZooTransfer(msg.sender, pending);
         }
         if(_amount > 0) {
@@ -242,7 +249,9 @@ contract ZooKeeperFarming is Ownable {
         }
         zoo.mint(devaddr, pending.mul(28).div(100));
         zoo.mint(address(this), pending);
-
+        if (extraRewardAddr != address(0)) {
+            ExtraReward(extraRewardAddr).reward(_pid, msg.sender);
+        }
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accZooPerShare).div(1e12);
         safeZooTransfer(msg.sender, pending);
@@ -254,7 +263,7 @@ contract ZooKeeperFarming is Ownable {
     function safeZooTransfer(address _to, uint256 _amount) internal {
         uint256 zooBal = zoo.balanceOf(address(this));
         if (_amount > zooBal) {
-            zoo.transfer(_to, waspBal);
+            zoo.transfer(_to, zooBal);
         } else {
             zoo.transfer(_to, _amount);
         }

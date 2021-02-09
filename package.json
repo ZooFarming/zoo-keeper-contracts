@@ -1,0 +1,12 @@
+{
+  "name": "zoo-keeper-contracts",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@openzeppelin/contracts": "^3.4.0",
+    "truffle": "^5.1.65",
+    "wanchain-truffle-sdk": "^1.0.0",
+    "web3-provider-engine": "^16.0.1"
+  }
+}

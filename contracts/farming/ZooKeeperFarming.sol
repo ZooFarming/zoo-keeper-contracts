@@ -106,7 +106,7 @@ contract ZooKeeperFarming is Ownable {
         boostingAddr = _boostingAddr;
         extraRewardAddr = _extraRewardAddr;
         zooPerBlock = _zooPerBlock;
-        maxMultiplier = 8;
+        maxMultiplier = 3;
     }
 
     function setBoostingAddr(address _boostingAddr) public onlyOwner {

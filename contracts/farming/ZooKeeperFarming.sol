@@ -63,10 +63,14 @@ contract ZooKeeperFarming is Ownable {
     ZooToken public zoo;
     // Dev address.
     address public devaddr;
+    // The block number when ZOO mining starts.
+    uint256 public startBlock;
     // Block number when test ZOO period ends.
     uint256 public allEndBlock;
     // ZOO tokens created per block.
     uint256 public zooPerBlock;
+    // Max multiplier
+    uint256 public maxMultiplier;
 
     // Info of each pool.
     PoolInfo[] public poolInfo;
@@ -74,8 +78,7 @@ contract ZooKeeperFarming is Ownable {
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;
     // Total allocation poitns. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
-    // The block number when ZOO mining starts.
-    uint256 public startBlock;
+
 
     // boosting controller contract address
     address public boostingAddr;
@@ -103,6 +106,7 @@ contract ZooKeeperFarming is Ownable {
         boostingAddr = _boostingAddr;
         extraRewardAddr = _extraRewardAddr;
         zooPerBlock = _zooPerBlock;
+        maxMultiplier = 8;
     }
 
     function setBoostingAddr(address _boostingAddr) public onlyOwner {
@@ -111,6 +115,10 @@ contract ZooKeeperFarming is Ownable {
 
     function setExtrRewardAddr(address _extraRewardAddr) public onlyOwner {
         extraRewardAddr = _extraRewardAddr;
+    }
+
+    function setMaxMultiplier(uint _maxMultiplier) public onlyOwner {
+        maxMultiplier = _maxMultiplier;
     }
 
     function poolLength() external view returns (uint256) {
@@ -172,6 +180,9 @@ contract ZooKeeperFarming is Ownable {
             // multiplier from lockTime and NFT
             if (boostingAddr != address(0)) {
                 uint multiplier2 = Boosting(boostingAddr).getMultiplier(_pid, _user);
+                if (multiplier2 > maxMultiplier) {
+                    multiplier2 = maxMultiplier;
+                }
                 accZooPerShare = accZooPerShare.mul(multiplier2).div(1e12);
             }
         }
@@ -213,6 +224,9 @@ contract ZooKeeperFarming is Ownable {
             if (boostingAddr != address(0)) {
                 // multiplier from lockTime and NFT
                 uint multiplier2 = Boosting(boostingAddr).getMultiplier(_pid, msg.sender);
+                if (multiplier2 > maxMultiplier) {
+                    multiplier2 = maxMultiplier;
+                }
                 pending = pending.mul(multiplier2).div(1e12);
 
                 Boosting(boostingAddr).deposit(_pid, msg.sender, lockTime, nftTokenId);
@@ -245,6 +259,9 @@ contract ZooKeeperFarming is Ownable {
         if (boostingAddr != address(0)) {
             // multiplier from lockTime and NFT
             uint multiplier2 = Boosting(boostingAddr).getMultiplier(_pid, msg.sender);
+            if (multiplier2 > maxMultiplier) {
+                multiplier2 = maxMultiplier;
+            }
             pending = pending.mul(multiplier2).div(1e12);
         }
         zoo.mint(devaddr, pending.mul(28).div(100));

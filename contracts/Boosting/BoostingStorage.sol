@@ -16,6 +16,10 @@ contract BoostingStorage {
     // NFT contract address
     address public NFTAddress;
 
+    uint public scaleA;
+
+    uint public scaleB;
+
     // storage all users info
     mapping (uint => mapping (address => UserInfo)) public userInfo;
 

@@ -64,21 +64,21 @@ contract TokenSwapDelegate is Initializable, AccessControl, ERC721Holder, Boosti
 
     function getExpirationTime(uint _pid, address _user) public view returns (uint) {
         UserInfo storage info = userInfo[_pid][_user];
-        uint nftBoosting = 1e12;
+        uint nftBoosting = MULTIPLIER_SCALE;
         if (info.tokenId != 0x0) {
             nftBoosting = ZooNFT(NFTAddress).getBoosting(info.tokenId);
         }
-        uint endTime = info.startTime + info.lockTime.div(nftBoosting).mul(1e12);
+        uint endTime = info.startTime + info.lockTime.div(nftBoosting).mul(MULTIPLIER_SCALE);
         return endTime;
     }
 
     // scale 1e12 times
     function getMultiplier(uint _pid, address _user) external view returns (uint) {
         UserInfo storage info = userInfo[_pid][_user];
-        uint boosting = info.lockTime.div(1 days).mul(1e12).mul(scaleB).div(scaleA).add(1e12);
+        uint boosting = info.lockTime.div(1 days).mul(MULTIPLIER_SCALE).mul(scaleB).div(scaleA).add(MULTIPLIER_SCALE);
         if (boosting != 0 && info.tokenId != 0x0) {
             uint nftBoosting = ZooNFT(NFTAddress).getBoosting(info.tokenId);
-            boosting = boosting.mul(nftBoosting).div(1e12);
+            boosting = boosting.mul(nftBoosting).div(MULTIPLIER_SCALE);
         }
         return boosting;
     } 

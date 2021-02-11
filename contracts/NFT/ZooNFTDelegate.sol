@@ -9,4 +9,13 @@ import "./ZooNFTStorage.sol";
 // ZooNFT
 contract ZooNFT is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessControl, ZooNFTStorage {
 
+    bytes32 public constant NFT_FACTORY_ROLE = keccak256("FARMING_CONTRACT_ROLE");
+
+    uint public constant MULTIPLIER_SCALE = 1e12;
+
+    function initialize(address admin) public payable initializer {
+        _setupRole(DEFAULT_ADMIN_ROLE, admin);
+    }
+
+    
 }

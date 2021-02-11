@@ -1,13 +1,13 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "./BoostingStorage.sol";
 
-contract TokenSwapDelegate is Initializable, AccessControl, BoostingStorage {
+contract TokenSwapDelegate is Initializable, AccessControl, ERC721Holder, BoostingStorage {
 
     bytes32 public constant ZOO_FARMING_ROLE = keccak256("FARMING_CONTRACT_ROLE");
 
@@ -23,13 +23,27 @@ contract TokenSwapDelegate is Initializable, AccessControl, BoostingStorage {
         _setupRole(ZOO_FARMING_ROLE, _farmingAddr);
     }
 
-    function deposit(uint pid, address user, uint lockTime, uint tokenId) external {
-        require(hasRole(ZOO_FARMING_ROLE, msg.sender));
-
+    function setNFTAddress(address _NFTAddress) public {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        NFTAddress = _NFTAddress;
     }
 
-    function checkWithdraw(uint pid, address user) external view returns (bool);
+    function deposit(uint _pid, address _user, uint _lockTime, uint _tokenId) external {
+        require(hasRole(ZOO_FARMING_ROLE, msg.sender));
+        UserInfo storage info = userInfo[_pid][_user];
+        info.startTime = block.timestamp;
+        info.lockTime = _lockTime;
+        info.tokenId = _tokenId;
+        IERC721(NFTAddress).safeTransferFrom(_user, address(this), _tokenId);
+    }
 
-    function getMultiplier(uint pid, address user) external view returns (uint); // zoom in 1e12 times;
+    function checkWithdraw(uint pid, address user) external view returns (bool) {
+        return false;
+    }
+
+    // zoom in 1e12 times;
+    function getMultiplier(uint pid, address user) external view returns (uint) {
+        return 1e12;
+    } 
 }
 

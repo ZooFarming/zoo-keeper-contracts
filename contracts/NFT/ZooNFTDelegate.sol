@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "./ZooNFTStorage.sol";
 
 // ZooNFT
-contract ZooNFT is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessControl, ZooNFTStorage {
+contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessControl, ZooNFTStorage {
 
     bytes32 public constant NFT_FACTORY_ROLE = keccak256("FARMING_CONTRACT_ROLE");
 

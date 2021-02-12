@@ -17,7 +17,7 @@ contract MarketplaceStorage {
         // pay token;
         address token;
         // pay amount;
-        address price;
+        uint price;
         // order expiration time
         uint expiration;
         // order expiration time
@@ -29,7 +29,7 @@ contract MarketplaceStorage {
     uint public minExpirationTime;
 
 
-    EnumerableSet.UintSet private orderIds; 
+    EnumerableSet.UintSet internal orderIds; 
 
     mapping(uint => OrderInfo) orders;
 }

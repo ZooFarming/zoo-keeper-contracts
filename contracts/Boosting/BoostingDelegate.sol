@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "./BoostingStorage.sol";
 
-interface ZooNFT {
+interface IZooNFT {
     // scaled 1e12
     function getBoosting(uint _tokenId) external view returns (uint);
 }
@@ -71,7 +71,7 @@ contract TokenSwapDelegate is Initializable, AccessControl, ERC721Holder, Boosti
         }
     }
 
-    function checkWithdraw(uint _pid, address _user) external view returns (bool) {
+    function checkWithdraw(uint _pid, address _user) public view returns (bool) {
         return block.timestamp > getExpirationTime(_pid, _user);
     }
 
@@ -79,7 +79,7 @@ contract TokenSwapDelegate is Initializable, AccessControl, ERC721Holder, Boosti
         UserInfo storage info = userInfo[_pid][_user];
         uint nftBoosting = MULTIPLIER_SCALE;
         if (info.tokenId != 0x0) {
-            nftBoosting = ZooNFT(NFTAddress).getBoosting(info.tokenId);
+            nftBoosting = IZooNFT(NFTAddress).getBoosting(info.tokenId);
         }
         uint endTime = info.startTime + info.lockTime.div(nftBoosting).mul(MULTIPLIER_SCALE);
         return endTime;
@@ -91,7 +91,7 @@ contract TokenSwapDelegate is Initializable, AccessControl, ERC721Holder, Boosti
         uint boosting = info.lockTime.div(1 days).mul(MULTIPLIER_SCALE).mul(scaleB).div(scaleA).add(MULTIPLIER_SCALE);
         uint nftBoosting = MULTIPLIER_SCALE;
         if (info.tokenId != 0x0) {
-            nftBoosting = ZooNFT(NFTAddress).getBoosting(info.tokenId);
+            nftBoosting = IZooNFT(NFTAddress).getBoosting(info.tokenId);
         }
 
         if (boosting != 0x0) {

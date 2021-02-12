@@ -12,7 +12,7 @@ interface IZooNFT {
     function getBoosting(uint _tokenId) external view returns (uint);
 }
 
-contract TokenSwapDelegate is Initializable, AccessControl, ERC721Holder, BoostingStorage {
+contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, BoostingStorage {
 
     bytes32 public constant ZOO_FARMING_ROLE = keccak256("FARMING_CONTRACT_ROLE");
 

@@ -21,6 +21,8 @@ interface Boosting {
 
     function deposit(uint pid, address user, uint lockTime, uint tokenId) external;
 
+    function withdraw(uint pid, address user) external;
+
     function checkWithdraw(uint pid, address user) external view returns (bool);
 
     function getMultiplier(uint pid, address user) external view returns (uint); // zoom in 1e12 times;
@@ -273,6 +275,11 @@ contract ZooKeeperFarming is Ownable {
         user.rewardDebt = user.amount.mul(pool.accZooPerShare).div(1e12);
         safeZooTransfer(msg.sender, pending);
         pool.lpToken.safeTransfer(address(msg.sender), _amount);
+
+        if (user.amount == 0x0) {
+            Boosting(boostingAddr).withdraw(_pid, msg.sender);
+        }
+
         emit Withdraw(msg.sender, _pid, _amount);
     }
 

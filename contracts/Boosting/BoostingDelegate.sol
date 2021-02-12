@@ -44,8 +44,9 @@ contract TokenSwapDelegate is Initializable, AccessControl, ERC721Holder, Boosti
     function deposit(uint _pid, address _user, uint _lockTime, uint _tokenId) external {
         require(hasRole(ZOO_FARMING_ROLE, msg.sender));
         UserInfo storage info = userInfo[_pid][_user];
-        info.startTime = block.timestamp;
-        if (_lockTime > info.lockTime || block.timestamp > getExpirationTime(_pid, _user)) {
+
+        if (_lockTime > info.lockTime || checkWithdraw(_pid, _user)) {
+            info.startTime = block.timestamp;
             info.lockTime = _lockTime;
         }
 
@@ -55,6 +56,18 @@ contract TokenSwapDelegate is Initializable, AccessControl, ERC721Holder, Boosti
             }
             info.tokenId = _tokenId;
             IERC721(NFTAddress).safeTransferFrom(_user, address(this), _tokenId);
+        }
+    }
+
+    function withdraw(uint _pid, address _user) external {
+        require(hasRole(ZOO_FARMING_ROLE, msg.sender));
+        require(checkWithdraw(_pid, _user), "lock time not finish");
+        UserInfo storage info = userInfo[_pid][_user];
+        info.startTime = 0;
+        info.lockTime = 0;
+        if (info.tokenId != 0x0) {
+            IERC721(NFTAddress).safeTransferFrom(address(this), _user, info.tokenId);
+            info.tokenId = 0x0;
         }
     }
 
@@ -76,11 +89,15 @@ contract TokenSwapDelegate is Initializable, AccessControl, ERC721Holder, Boosti
     function getMultiplier(uint _pid, address _user) external view returns (uint) {
         UserInfo storage info = userInfo[_pid][_user];
         uint boosting = info.lockTime.div(1 days).mul(MULTIPLIER_SCALE).mul(scaleB).div(scaleA).add(MULTIPLIER_SCALE);
-        if (boosting != 0 && info.tokenId != 0x0) {
-            uint nftBoosting = ZooNFT(NFTAddress).getBoosting(info.tokenId);
-            boosting = boosting.mul(nftBoosting).div(MULTIPLIER_SCALE);
+        uint nftBoosting = MULTIPLIER_SCALE;
+        if (info.tokenId != 0x0) {
+            nftBoosting = ZooNFT(NFTAddress).getBoosting(info.tokenId);
         }
-        return boosting;
+
+        if (boosting != 0x0) {
+            return boosting.mul(nftBoosting).div(MULTIPLIER_SCALE);
+        }
+
+        return nftBoosting;
     } 
 }
-

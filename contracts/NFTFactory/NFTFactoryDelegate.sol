@@ -23,43 +23,36 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
 
     function initialize(address admin, address _zooToken, address _zooNFT) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
-        randomNFTPrice = 30000 ether;
-        stakeUnitPeriod = 30 days;
-        stakeUnitAmount =  10000 ether;
+        goldenChestPrice = 30000 ether;
+        silverChestPrice = 3000 ether;
         maxNFTLevel = 1;
         maxNFTCategory = 6;
+        maxNFTItem = 5;
+        maxNFTRandom = 300;
         zooToken = _zooToken;
         zooNFT = _zooNFT;
     }
 
-    function setRandomNFTPrice(uint _price) external {
+    function configChestPrice(uint _golden, uint _silver) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        randomNFTPrice = _price;
+        goldenChestPrice = _golden;
+        silverChestPrice = _silver;
     }
 
-    function setStakeUnitPeriod(uint _period) external {
+    function configNFTParams(uint _maxLevel, uint _maxNFTCategory, uint _maxNFTItem, uint _maxNFTRandom) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        stakeUnitPeriod = _period;
+        maxNFTLevel = _maxLevel;
+        maxNFTCategory = _maxNFTCategory;
+        maxNFTItem = _maxNFTItem;
+        maxNFTRandom = _maxNFTRandom;
     }
 
-    function setStakeUnitAmount(uint _amount) external {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        stakeUnitAmount = _amount;
+    function buyGoldenChest() public {
+
     }
 
-    function setZooToken(address _zooToken) external {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        zooToken = _zooToken;
-    }
+    function buySilverChest() public {
 
-    function setZooNFT(address _nft) external {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        zooNFT = _nft;
-    }
-
-    function setMaxNFTLevel(uint maxLevel) external {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        maxNFTLevel = maxLevel;
     }
 
     function buyRandomNFT() external {
@@ -76,7 +69,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         IERC721(zooNFT).safeTransferFrom(address(this), msg.sender, tokenId);
     }
 
-    function randomNFT() public view returns (uint tokenId, uint level, uint category, uint item, uint random) {
+    function randomGoldenNFT() public view returns (uint tokenId, uint level, uint category, uint item, uint random) {
         uint totalSupply = IZooNFT(zooNFT).totalSupply();
         tokenId = uint(keccak256(abi.encode("ZOO_KEEPER_NFT", totalSupply)));
         uint random1 = uint(keccak256(abi.encode(tokenId, msg.sender, blockhash(block.number - 1), block.timestamp, totalSupply)));

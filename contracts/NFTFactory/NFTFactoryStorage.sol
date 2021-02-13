@@ -5,11 +5,15 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 contract NFTFactoryStorage {
     using SafeMath for uint256;
 
-    uint public randomNFTPrice;
+    struct UserInfo {
+        uint emptyTimes; // silver chest empty times;
+    }
 
-    uint public stakeUnitPeriod;
+    mapping(address => UserInfo) public userInfo;
 
-    uint public stakeUnitAmount;
+    uint public goldenChestPrice;
+
+    uint public silverChestPrice;
 
     address public zooToken;
 

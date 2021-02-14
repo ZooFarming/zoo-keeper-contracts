@@ -26,7 +26,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
     function initialize(address admin, address _zooToken, address _zooNFT) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
         goldenChestPrice = 30000 ether;
-        maxNFTLevel = 1;
+        maxNFTLevel = 4;
         maxNFTCategory = 6;
         maxNFTItem = 5;
         maxNFTRandom = 300;
@@ -36,6 +36,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         priceUp1 = 100;
         priceDown0 = 99;
         priceDown1 = 100;
+        stakePlanCount = 3;
     }
 
     function configTokenAddress(address _zooToken, address _zooNFT) external {
@@ -63,6 +64,11 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         priceUp1 = _up1;
         priceDown0 = _down0;
         priceDown1 = _down1;
+    }
+
+    function configStakePlan(uint _stakePlanCount) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        stakePlanCount = _stakePlanCount;
     }
 
     function buyGoldenChest() public {
@@ -97,14 +103,14 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         IZooToken(zooToken).burn(currentPrice);
 
         bool success = false;
-        if (userInfo[msg.sender].emptyTimes >= 9) {
+        if (emptyTimes[msg.sender] >= 9) {
             success = true;
         } else {
             success = isSilverSuccess();
         }
 
         if (!success) {
-            userInfo[msg.sender].emptyTimes++;
+            emptyTimes[msg.sender]++;
             emit MintNFT(0, 0, 0, 0, 0);
             return;
         }
@@ -135,6 +141,61 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         return lastPrice.mul(priceDown0**hourPassed).div(priceDown1**hourPassed);
     }
 
+    /// @dev Stake ZOO to get NFT
+    /// @param _type value: 
+    /// 0: lock 48 hours to get lv1 NFT
+    /// 1: lock 7 days to get lv2 NFT
+    /// 2: lock 14 days to get lv3 NFT
+    function stakeZoo(uint _type) public {
+        require(isStakeFinished(_type), "There is still pending stake");
+        require(_type < stakePlanCount, "_type error");
+
+        uint currentPrice = queryGoldenPrice();
+        lastOrderTimestamp = block.timestamp;
+        // every 1 order, the price goes up 1%
+        lastPrice = currentPrice.mul(priceUp0).div(priceUp1);
+
+        stakeInfo[msg.sender][_type].stakeAmount = currentPrice;
+        stakeInfo[msg.sender][_type].startTime = block.timestamp;
+
+        if (_type == 0) {
+            stakeInfo[msg.sender][_type].lockTime = 48 hours;
+        } else if (_type == 1) {
+            stakeInfo[msg.sender][_type].lockTime = 7 days;
+        } else {
+            stakeInfo[msg.sender][_type].lockTime = 14 days;
+        }
+
+        IERC20(zooToken).transferFrom(msg.sender, address(this), currentPrice);
+    }
+
+    function isStakeable(uint _type) public view returns (bool) {
+        if (_type >= stakePlanCount) {
+            return false;
+        }
+
+        return stakeInfo[msg.sender][_type].stakeAmount == 0;
+    }
+
+    function stakeClaim(uint _type) public {
+        require(_type < stakePlanCount, "_type error");
+        require(isStakeFinished(_type), "There is still pending stake");
+
+        uint amount = stakeInfo[msg.sender][_type].stakeAmount;
+        require(amount > 0, "no stake");
+
+        delete stakeInfo[msg.sender][_type];
+
+        //mint NFT
+        mintLeveledNFT(_type + 1);
+
+        IERC20(zooToken).transferFrom(address(this), msg.sender, amount);
+    }
+
+    function isStakeFinished(uint _type) public view returns (bool) {
+        return block.timestamp > (stakeInfo[msg.sender][_type].startTime.add(stakeInfo[msg.sender][_type].lockTime));
+    }
+
     function isSilverSuccess() private view returns (bool) {
         uint totalSupply = IZooNFTMint(zooNFT).totalSupply();
         uint random1 = uint(keccak256(abi.encode(msg.sender, blockhash(block.number - 1), block.timestamp, totalSupply)));
@@ -146,7 +207,25 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         return false;
     } 
 
+    // mint special level NFT
+    function mintLeveledNFT(uint _level) private view returns (uint tokenId, uint level, uint category, uint item, uint random) {
+        //TODO
+        uint totalSupply = IZooNFTMint(zooNFT).totalSupply();
+        tokenId = totalSupply + 1;
+        uint random1 = uint(keccak256(abi.encode(tokenId, msg.sender, blockhash(block.number - 1), block.timestamp)));
+        uint random2 = uint(keccak256(abi.encode(random1)));
+        uint random3 = uint(keccak256(abi.encode(random2)));
+        uint random4 = uint(keccak256(abi.encode(random3)));
+
+        level = _level;
+        category = getMaskValue(random4.mod(100), CATEGORY_MASK) + 1;
+        item = getMaskValue(random3.mod(100), ITEM_MASK) + 1;
+        random = random1.mod(maxNFTRandom) + 1;
+    }
+
     function randomNFT(bool golden) private view returns (uint tokenId, uint level, uint category, uint item, uint random) {
+        //TODO
+
         uint totalSupply = IZooNFTMint(zooNFT).totalSupply();
         tokenId = totalSupply + 1;
         uint random1 = uint(keccak256(abi.encode(tokenId, msg.sender, blockhash(block.number - 1), block.timestamp)));
@@ -155,13 +234,21 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         uint random4 = uint(keccak256(abi.encode(random3)));
         uint random5 = uint(keccak256(abi.encode(random4)));
 
-        level = random5.mod(maxNFTLevel) + 1;
-        category = random4.mod(maxNFTCategory) + 1;
+        level = getMaskValue(random5.mod(100), LEVEL_MASK) + 1;
+        category = getMaskValue(random4.mod(100), CATEGORY_MASK) + 1;
         if (golden) {
-            item = random3.mod(maxNFTItem) + 1;
+            item = getMaskValue(random3.mod(100), ITEM_MASK) + 1;
         } else {
-            item = random2.mod(3) + 1;
+            item = getMaskValue(random2.mod(85), ITEM_MASK) + 1;
         }
         random = random1.mod(maxNFTRandom) + 1;
+    }
+
+    function getMaskValue(uint random, uint[] memory mask) private pure returns (uint) {
+        for (uint i=0; i<mask.length; i++) {
+            if (random < mask[i]) {
+                return i;
+            }
+        }
     }
 }

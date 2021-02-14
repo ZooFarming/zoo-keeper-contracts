@@ -13,17 +13,27 @@ contract NFTFactoryStorage {
 
     uint public goldenChestPrice;
 
-    uint public silverChestPrice;
-
     address public zooToken;
 
     address public zooNFT;
 
-    address public maxNFTLevel;
+    uint public maxNFTLevel;
 
-    address public maxNFTCategory;
+    uint public maxNFTCategory;
 
-    address public maxNFTItem;
+    uint public maxNFTItem;
 
-    address public maxNFTRandom;
+    uint public maxNFTRandom;
+
+    uint public lastPrice;
+
+    uint public lastOrderTimestamp;
+
+    uint public priceUp0;
+
+    uint public priceUp1;
+
+    uint public priceDown0;
+
+    uint public priceDown1;
 }

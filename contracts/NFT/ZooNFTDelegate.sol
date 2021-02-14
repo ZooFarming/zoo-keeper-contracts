@@ -27,6 +27,15 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
         _setBaseURI(_baseURI);
     }
 
+    function setNftURI(uint level, uint category, uint item, string memory URI) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        nftURI[level][category][item] = URI;
+    }
+
+    function getNftURI(uint level, uint category, uint item) public view returns (string memory) {
+        return nftURI[level][category][item];
+    }
+
     // Use for boosting calc: boosting = (level - 1) * a + category * b + item * c + random * d;
     function setScaleParams(uint _a, uint _b, uint _c, uint _d) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
@@ -49,6 +58,7 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
         tokenInfo[tokenId].category = _category;
         tokenInfo[tokenId].item = _item;
         tokenInfo[tokenId].random = _random;
+        _setTokenURI(tokenId, nftURI[_level][_category][_item]);
     }
 
     function foundationMint(uint tokenId, uint _level, uint _category, uint _item, uint _random) external {
@@ -59,5 +69,6 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
         tokenInfo[tokenId].category = _category;
         tokenInfo[tokenId].item = _item;
         tokenInfo[tokenId].random = _random;
+        _setTokenURI(tokenId, nftURI[_level][_category][_item]);
     }
 }

@@ -22,5 +22,9 @@ contract ZooNFTStorage {
 
     ScaleParams public scaleParams;
 
+    // tokenId => tokenInfo
     mapping(uint => TokenInfo) public tokenInfo;
+
+    // level => category => item => tokenURI
+    mapping(uint => mapping(uint => mapping(uint => string))) public nftURI;
 }

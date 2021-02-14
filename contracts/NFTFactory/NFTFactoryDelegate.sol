@@ -209,7 +209,6 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
 
     // mint special level NFT
     function mintLeveledNFT(uint _level) private view returns (uint tokenId, uint level, uint category, uint item, uint random) {
-        //TODO
         uint totalSupply = IZooNFTMint(zooNFT).totalSupply();
         tokenId = totalSupply + 1;
         uint random1 = uint(keccak256(abi.encode(tokenId, msg.sender, blockhash(block.number - 1), block.timestamp)));
@@ -224,8 +223,6 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
     }
 
     function randomNFT(bool golden) private view returns (uint tokenId, uint level, uint category, uint item, uint random) {
-        //TODO
-
         uint totalSupply = IZooNFTMint(zooNFT).totalSupply();
         tokenId = totalSupply + 1;
         uint random1 = uint(keccak256(abi.encode(tokenId, msg.sender, blockhash(block.number - 1), block.timestamp)));

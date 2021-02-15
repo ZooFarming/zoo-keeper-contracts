@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -17,6 +18,10 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
     bytes32 public constant ZOO_FARMING_ROLE = keccak256("FARMING_CONTRACT_ROLE");
 
     uint public constant MULTIPLIER_SCALE = 1e12;
+
+    event BoostingDeposit(uint indexed _pid, address indexed _user, uint _lockTime, uint _tokenId);
+
+    event BoostingWithdraw(uint indexed _pid, address indexed _user);
 
     function initialize(address admin) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
@@ -57,6 +62,8 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
             info.tokenId = _tokenId;
             IERC721(NFTAddress).safeTransferFrom(_user, address(this), _tokenId);
         }
+
+        emit BoostingDeposit(_pid, _user, _lockTime, _tokenId);
     }
 
     function withdraw(uint _pid, address _user) external {
@@ -69,6 +76,8 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
             IERC721(NFTAddress).safeTransferFrom(address(this), _user, info.tokenId);
             info.tokenId = 0x0;
         }
+
+        emit BoostingWithdraw(_pid, _user);
     }
 
     function checkWithdraw(uint _pid, address _user) public view returns (bool) {

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
 
@@ -22,6 +23,12 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
     using SafeERC20 for IERC20;
 
     event MintNFT(uint indexed level, uint indexed category, uint indexed item, uint random, uint tokenId);
+
+    event GoldenBuy(address indexed user, uint price);
+    
+    event SilverBuy(address indexed user, uint price);
+
+    event ZooStake(address indexed _user, uint _price, uint _type);
 
     function initialize(address admin, address _zooToken, address _zooNFT) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
@@ -88,6 +95,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         IZooNFTMint(zooNFT).mint(tokenId, level, category, item, random);
         IERC721(zooNFT).safeTransferFrom(address(this), msg.sender, tokenId);
         emit MintNFT(level, category, item, random, tokenId);
+        emit GoldenBuy(msg.sender, currentPrice);
     }
 
     function buySilverChest() public {
@@ -125,6 +133,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         IZooNFTMint(zooNFT).mint(tokenId, level, category, item, random);
         IERC721(zooNFT).safeTransferFrom(address(this), msg.sender, tokenId);
         emit MintNFT(level, category, item, random, tokenId);
+        emit SilverBuy(msg.sender, currentPrice);
     }
 
     function queryGoldenPrice() public view returns (uint) {
@@ -167,6 +176,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         }
 
         IERC20(zooToken).transferFrom(msg.sender, address(this), currentPrice);
+        emit ZooStake(msg.sender, currentPrice, _type);
     }
 
     function isStakeable(uint _type) public view returns (bool) {

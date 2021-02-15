@@ -23,11 +23,6 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
         _setupRole(NFT_FACTORY_ROLE, _nftFactory);
     }
 
-    function setBaseURI(string memory _baseURI) external {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        _setBaseURI(_baseURI);
-    }
-
     function setNftURI(uint level, uint category, uint item, string memory URI) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         nftURI[level][category][item] = URI;
@@ -38,6 +33,7 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
     }
 
     // Use for boosting calc: boosting = (level - 1) * a + category * b + item * c + random * d;
+    // scale: 1e12
     function setScaleParams(uint _a, uint _b, uint _c, uint _d) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         scaleParams.a = _a;
@@ -47,6 +43,7 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
     }
 
     // Use for get boosting: boosting = (level - 1) * a + category * b + item * c + random * d;
+    // scale: 1e12
     function getBoosting(uint _tokenId) external view returns (uint) {
         return tokenInfo[_tokenId].level.sub(1).mul(scaleParams.a) + tokenInfo[_tokenId].category.mul(scaleParams.b) + tokenInfo[_tokenId].item.mul(scaleParams.c) + tokenInfo[_tokenId].random.mul(scaleParams.d);
     }

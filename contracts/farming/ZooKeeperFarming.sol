@@ -251,10 +251,6 @@ contract ZooKeeperFarming is Ownable {
 
     // Withdraw LP tokens from ZooKeeperFarming.
     function withdraw(uint256 _pid, uint256 _amount) public {
-        if (boostingAddr != address(0)) {
-            require(Boosting(boostingAddr).checkWithdraw(_pid, msg.sender), "Lock time not finish");
-        }
-        
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
@@ -272,6 +268,11 @@ contract ZooKeeperFarming is Ownable {
         if (extraRewardAddr != address(0)) {
             ExtraReward(extraRewardAddr).reward(_pid, msg.sender);
         }
+
+        if (boostingAddr != address(0) && _amount != 0) {
+            require(Boosting(boostingAddr).checkWithdraw(_pid, msg.sender), "Lock time not finish");
+        }
+
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accZooPerShare).div(1e12);
         safeZooTransfer(msg.sender, pending);

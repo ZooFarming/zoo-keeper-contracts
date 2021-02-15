@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "compile": "yarn truffle compile",
+    "test": "yarn truffle test"
+  },
   "dependencies": {
     "@openzeppelin/contracts": "^3.4.0",
     "truffle": "^5.1.65",

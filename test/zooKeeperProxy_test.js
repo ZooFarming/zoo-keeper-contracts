@@ -21,6 +21,18 @@ contract("ZooKeeperProxy", accounts => {
     const zooNFTDelegate3 = await ZooNFTDelegate.new();
 
     await zooNFTProxy.upgradeTo(zooNFTDelegate3.address, {from: accounts[2]});
+
+    // await zoo.changeAdmin(accounts[3], {from: accounts[0]});
+    let ret = await zoo.getRoleMember('0x00', 0);
+    assert.strictEqual(accounts[0], ret);
+    await zoo.grantRole('0x00', accounts[3]);
+    ret = await zoo.getRoleMember('0x00', 1);
+    assert.strictEqual(accounts[3], ret);
+    await zoo.renounceRole('0x00', accounts[0]);
+    ret = await zoo.getRoleMember('0x00', 0);
+    assert.strictEqual(accounts[3], ret);
+
+    console.log(ret);
   });
 });
 

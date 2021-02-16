@@ -72,6 +72,7 @@ contract ZooKeeperFarming is Ownable {
         // extra pool reward
         uint256 waspPid;         // PID for extra pool
         uint256 accWaspPerShare; // Accumulated extra token per share, times 1e12.
+        bool dualFarmingEnable;
     }
 
     // The ZOO TOKEN!
@@ -97,7 +98,6 @@ contract ZooKeeperFarming is Ownable {
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;
     // Total allocation poitns. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
-
 
     // boosting controller contract address
     address public boostingAddr;
@@ -136,9 +136,16 @@ contract ZooKeeperFarming is Ownable {
         wasp = _wasp;
     }
 
-    function setWaspPid(uint _pid, uint _waspPid) public onlyOwner {
+    function setWaspPid(uint _pid, uint _waspPid, bool _dualFarmingEnable) public onlyOwner {
         poolInfo[_pid].waspPid = _waspPid;
+        poolInfo[_pid].dualFarmingEnable = _dualFarmingEnable;
         poolInfo[_pid].accWaspPerShare = 0;
+    }
+
+    function withdrawAllFromWasp(uint _waspPid) public onlyOwner {
+        uint total;
+        (total,) = IWaspFarming(wanswapFarming).userInfo(_waspPid, address(this));
+        IWaspFarming(wanswapFarming).withdraw(_waspPid, total);
     }
 
     function setMaxMultiplier(uint _maxMultiplier) public onlyOwner {
@@ -163,7 +170,8 @@ contract ZooKeeperFarming is Ownable {
             lastRewardBlock: lastRewardBlock,
             accZooPerShare: 0,
             waspPid: _waspPid,
-            accWaspPerShare: 0
+            accWaspPerShare: 0,
+            dualFarmingEnable: false
         }));
     }
 
@@ -204,7 +212,7 @@ contract ZooKeeperFarming is Ownable {
         uint256 accZooPerShare = pool.accZooPerShare;
         
         uint256 lpSupply;
-        if (wanswapFarming == address(0)) {
+        if (wanswapFarming == address(0) || !pool.dualFarmingEnable) {
             lpSupply = pool.lpToken.balanceOf(address(this));
         } else {
             (lpSupply,) = IWaspFarming(wanswapFarming).userInfo(pool.waspPid, address(this));
@@ -232,7 +240,7 @@ contract ZooKeeperFarming is Ownable {
         uint256 accWaspPerShare = pool.accWaspPerShare;
         
         uint256 lpSupply;
-        if (wanswapFarming == address(0)) {
+        if (wanswapFarming == address(0) || !pool.dualFarmingEnable) {
             return 0;
         } 
         
@@ -260,7 +268,7 @@ contract ZooKeeperFarming is Ownable {
             return;
         }
         uint256 lpSupply;
-        if (wanswapFarming == address(0)) {
+        if (wanswapFarming == address(0) || !pool.dualFarmingEnable) {
             lpSupply = pool.lpToken.balanceOf(address(this));
         } else {
             (lpSupply,) = IWaspFarming(wanswapFarming).userInfo(pool.waspPid, address(this));
@@ -300,7 +308,7 @@ contract ZooKeeperFarming is Ownable {
             mintZoo(pending);
             safeZooTransfer(msg.sender, pending);
 
-            if (wanswapFarming != address(0)) {
+            if (wanswapFarming != address(0) && pool.dualFarmingEnable) {
                 uint256 waspPending = user.amount.mul(pool.accWaspPerShare).div(1e12).sub(user.waspRewardDebt);
                 safeWaspTransfer(msg.sender, waspPending);
             }
@@ -311,7 +319,7 @@ contract ZooKeeperFarming is Ownable {
         }
         user.rewardDebt = user.amount.mul(pool.accZooPerShare).div(1e12);
 
-        if (wanswapFarming != address(0)) {
+        if (wanswapFarming != address(0) && pool.dualFarmingEnable) {
             IWaspFarming(wanswapFarming).deposit(pool.waspPid, _amount);
             user.waspRewardDebt = user.amount.mul(pool.accZooPerShare).div(1e12);
         }
@@ -340,7 +348,7 @@ contract ZooKeeperFarming is Ownable {
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accZooPerShare).div(1e12);
 
-        if (wanswapFarming != address(0)) {
+        if (wanswapFarming != address(0) && pool.dualFarmingEnable) {
             uint256 waspPending = userOldAmount.mul(pool.accWaspPerShare).div(1e12).sub(user.waspRewardDebt);
             safeWaspTransfer(msg.sender, waspPending);
             user.waspRewardDebt = user.amount.mul(pool.accWaspPerShare).div(1e12);
@@ -354,7 +362,7 @@ contract ZooKeeperFarming is Ownable {
                 }
             }
 
-            if (wanswapFarming != address(0)) { 
+            if (wanswapFarming != address(0) && pool.dualFarmingEnable) { 
                 IWaspFarming(wanswapFarming).withdraw(pool.waspPid, _amount);
             }
 

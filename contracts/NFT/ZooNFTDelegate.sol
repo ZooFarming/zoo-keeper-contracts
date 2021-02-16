@@ -45,6 +45,9 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
     // Use for get boosting: boosting = (level - 1) * a + category * b + item * c + random * d;
     // scale: 1e12
     function getBoosting(uint _tokenId) external view returns (uint) {
+        if (tokenInfo[_tokenId].level == 0) {
+            return MULTIPLIER_SCALE;
+        }
         return tokenInfo[_tokenId].level.sub(1).mul(scaleParams.a) + tokenInfo[_tokenId].category.mul(scaleParams.b) + tokenInfo[_tokenId].item.mul(scaleParams.c) + tokenInfo[_tokenId].random.mul(scaleParams.d);
     }
     

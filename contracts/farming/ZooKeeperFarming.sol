@@ -293,6 +293,7 @@ contract ZooKeeperFarming is Ownable {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
+        uint userAmountOld = user.amount;
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(pool.accZooPerShare).div(1e12).sub(user.rewardDebt);
             if (boostingAddr != address(0)) {
@@ -307,11 +308,6 @@ contract ZooKeeperFarming is Ownable {
             }
             mintZoo(pending);
             safeZooTransfer(msg.sender, pending);
-
-            if (wanswapFarming != address(0) && pool.dualFarmingEnable) {
-                uint256 waspPending = user.amount.mul(pool.accWaspPerShare).div(1e12).sub(user.waspRewardDebt);
-                safeWaspTransfer(msg.sender, waspPending);
-            }
         }
         if(_amount > 0) {
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
@@ -320,6 +316,8 @@ contract ZooKeeperFarming is Ownable {
         user.rewardDebt = user.amount.mul(pool.accZooPerShare).div(1e12);
 
         if (wanswapFarming != address(0) && pool.dualFarmingEnable) {
+            uint256 waspPending = userAmountOld.mul(pool.accWaspPerShare).div(1e12).sub(user.waspRewardDebt);
+            safeWaspTransfer(msg.sender, waspPending);
             IWaspFarming(wanswapFarming).deposit(pool.waspPid, _amount);
             user.waspRewardDebt = user.amount.mul(pool.accZooPerShare).div(1e12);
         }

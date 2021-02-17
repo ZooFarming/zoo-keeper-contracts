@@ -17,18 +17,18 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
 
     function initialize(address admin) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
+        _setRoleAdmin(NFT_FACTORY_ROLE, DEFAULT_ADMIN_ROLE);
     }
 
     function setNFTFactory(address _nftFactory) external {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        _setupRole(NFT_FACTORY_ROLE, _nftFactory);
+        grantRole(NFT_FACTORY_ROLE, _nftFactory);
     }
 
     function setBaseURI(string memory _baseURI) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         _setBaseURI(_baseURI);
     }
-    
+
     function setNftURI(uint level, uint category, uint item, string memory URI) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         nftURI[level][category][item] = URI;
@@ -66,17 +66,6 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
     
     function mint(uint tokenId, uint _level, uint _category, uint _item, uint _random) external {
         require(hasRole(NFT_FACTORY_ROLE, msg.sender));
-        _safeMint(msg.sender, tokenId);
-        require(_level > 0 && _level < 5, "level must larger than 0, lesser than 5");
-        tokenInfo[tokenId].level = _level;
-        tokenInfo[tokenId].category = _category;
-        tokenInfo[tokenId].item = _item;
-        tokenInfo[tokenId].random = _random;
-        _setTokenURI(tokenId, nftURI[_level][_category][_item]);
-    }
-
-    function foundationMint(uint tokenId, uint _level, uint _category, uint _item, uint _random) external {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         _safeMint(msg.sender, tokenId);
         require(_level > 0 && _level < 5, "level must larger than 0, lesser than 5");
         tokenInfo[tokenId].level = _level;

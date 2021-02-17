@@ -14,3 +14,10 @@ $ yarn truffle compile
 $ yarn truffle test
 ```
 
+deploy sequence: 
+1) NFT factory, proxy;
+2) NFT, proxy;
+3) Boosting, proxy;
+4) ZooToken;
+5) ZooFarming;
+6) Marketplace, proxy;

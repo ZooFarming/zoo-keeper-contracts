@@ -3,8 +3,8 @@ const ZooNFTDelegate = artifacts.require('ZooNFTDelegate');
 const assert = require('assert');
 
 contract("ZooNFTDelegate", accounts => {
-  it.only("all", async () => {
-    const zooNFTDelegate = await ZooNFTDelegate.new(accounts[0]);
+  it("all", async () => {
+    const zooNFTDelegate = await ZooNFTDelegate.new();
     await zooNFTDelegate.initialize(accounts[0]);
     await zooNFTDelegate.setBaseURI('https://gateway.pinata.cloud/ipfs/');
 
@@ -13,6 +13,8 @@ contract("ZooNFTDelegate", accounts => {
     assert.strictEqual(ret, 'QmZ7ddzc9ZFF4dsZxfYhu26Hp3bh1Pq2koxYWkBY6vbeoN/apple.json');
 
     await zooNFTDelegate.setNFTFactory(accounts[1]);
+    await zooNFTDelegate.setNFTFactory(accounts[2]);
+
 
     try {
       await zooNFTDelegate.setNFTFactory(accounts[1], {from: accounts[1]});
@@ -41,7 +43,7 @@ contract("ZooNFTDelegate", accounts => {
 
     await zooNFTDelegate.setNftURI(2, 1, 1, 'QmZ7ddzc9ZFF4dsZxfYhu26Hp3bh1Pq2koxYWkBY6vbeoN/apple-pie.json');
 
-    await zooNFTDelegate.foundationMint(202, 2, 1, 1, 10, {from: accounts[0]});
+    await zooNFTDelegate.mint(202, 2, 1, 1, 10, {from: accounts[2]});
 
     ret = await zooNFTDelegate.getBoosting(202);
 

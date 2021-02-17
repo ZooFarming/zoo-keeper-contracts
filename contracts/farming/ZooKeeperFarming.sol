@@ -228,7 +228,7 @@ contract ZooKeeperFarming is Ownable {
                 if (multiplier2 > maxMultiplier) {
                     multiplier2 = maxMultiplier;
                 }
-                accZooPerShare = accZooPerShare.mul(multiplier2).div(1e12);
+                return user.amount.mul(accZooPerShare).div(1e12).sub(user.rewardDebt).mul(multiplier2).div(1e12);
             }
         }
         return user.amount.mul(accZooPerShare).div(1e12).sub(user.rewardDebt);

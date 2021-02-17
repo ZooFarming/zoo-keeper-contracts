@@ -25,14 +25,14 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
 
     function initialize(address admin) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
+        _setRoleAdmin(ZOO_FARMING_ROLE, DEFAULT_ADMIN_ROLE);
         scaleA = 3e13; // 30
         scaleB = 1e11; // 0.1
     }
 
     /// @dev Config the farming contract address
     function setFarmingAddr(address _farmingAddr) public {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        _setupRole(ZOO_FARMING_ROLE, _farmingAddr);
+        grantRole(ZOO_FARMING_ROLE, _farmingAddr);
     }
 
     function setNFTAddress(address _NFTAddress) public {
@@ -100,7 +100,7 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
         uint boosting = info.lockTime.div(1 days).mul(MULTIPLIER_SCALE).mul(scaleB).div(scaleA).add(MULTIPLIER_SCALE);
         uint nftBoosting = MULTIPLIER_SCALE;
         if (info.tokenId != 0x0) {
-            nftBoosting = IZooNFT(NFTAddress).getBoosting(info.tokenId);
+            nftBoosting = nftBoosting.add(IZooNFT(NFTAddress).getBoosting(info.tokenId));
         }
 
         if (boosting != 0x0) {

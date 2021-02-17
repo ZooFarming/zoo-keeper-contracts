@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+pragma experimental ABIEncoderV2;
 pragma solidity 0.6.12;
 
 
@@ -26,6 +27,13 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
     function setNftURI(uint level, uint category, uint item, string memory URI) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         nftURI[level][category][item] = URI;
+    }
+
+    function setMultiNftURI(uint[] memory levels, uint[] memory categorys, uint[] memory items, string[] memory URIs) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        for (uint i=0; i<levels.length; i++) {
+            nftURI[levels[i]][categorys[i]][items[i]] = URIs[i];
+        }
     }
 
     function getNftURI(uint level, uint category, uint item) public view returns (string memory) {

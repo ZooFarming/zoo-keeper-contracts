@@ -37,7 +37,7 @@ contract("ZooNFTDelegate", accounts => {
     ret = await zooNFTDelegate.getBoosting(1);
     assert.strictEqual(ret.toString(), '12000000000');
 
-    await zooNFTDelegate.setNftURI(2, 1, 1, 'https://gateway.pinata.cloud/ipfs/QmZ7ddzc9ZFF4dsZxfYhu26Hp3bh1Pq2koxYWkBY6vbeoN/apple.json');
+    await zooNFTDelegate.setNftURI(2, 1, 1, 'https://gateway.pinata.cloud/ipfs/QmZ7ddzc9ZFF4dsZxfYhu26Hp3bh1Pq2koxYWkBY6vbeoN/apple-pie.json');
 
     await zooNFTDelegate.foundationMint(202, 2, 1, 1, 10, {from: accounts[0]});
 
@@ -45,6 +45,14 @@ contract("ZooNFTDelegate", accounts => {
 
     assert.strictEqual(ret.toString(), '111100000000');
 
+    await zooNFTDelegate.setMultiNftURI(
+      [1,2], 
+      [1,1], 
+      [1,1], 
+      [
+        'https://gateway.pinata.cloud/ipfs/QmZ7ddzc9ZFF4dsZxfYhu26Hp3bh1Pq2koxYWkBY6vbeoN/apple.json',
+        'https://gateway.pinata.cloud/ipfs/QmZ7ddzc9ZFF4dsZxfYhu26Hp3bh1Pq2koxYWkBY6vbeoN/apple-pie.json'
+      ]);
 
     console.log(ret.toString());
   });

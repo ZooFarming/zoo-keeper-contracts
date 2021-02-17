@@ -7,6 +7,8 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 
 contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
+    console.log("Please remember to restart ganache-cli before each test.")
+
     beforeEach(async () => {
         this.zoo = await ZooToken.new({ from: alice });
     });
@@ -147,28 +149,20 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
             // Alice deposits 10 LPs at block 310
             await time.advanceBlockTo('309');
             await this.farm.deposit(0, '10', 0, 0, { from: alice });
-            console.log('t 310', (await this.zoo.totalSupply()).toString());
             await time.advanceBlockTo('311');
-            console.log('t 311', (await this.zoo.totalSupply()).toString());
             await time.advanceBlockTo('312');
-            console.log('t 312', (await this.zoo.totalSupply()).toString());
             // Bob deposits 20 LPs at block 314
             await time.advanceBlockTo('313');
-            console.log('t 313', (await this.zoo.totalSupply()).toString());
             await this.farm.deposit(0, '20', 0, 0, { from: bob });
-            console.log('t 314', (await this.zoo.totalSupply()).toString());
 
             // Carol deposits 30 LPs at block 318
             await time.advanceBlockTo('317');
             await this.farm.deposit(0, '30', 0, 0, { from: carol });
-            console.log('t 317', (await this.zoo.totalSupply()).toString());
 
             // Alice deposits 10 more LPs at block 320. At this point:
             //   Alice should have: 4*100 + 4*1/3*100 + 2*1/6*100 = 566
             await time.advanceBlockTo('319')
             await this.farm.deposit(0, '10', 0, 0, { from: alice });
-            console.log('t320', (await this.zoo.totalSupply()).toString());
-            console.log('a320', (await this.zoo.balanceOf(this.farm.address)).toString());
 
             assert.equal((await this.zoo.totalSupply()).valueOf(), '724');
             assert.equal((await this.zoo.balanceOf(alice)).valueOf(), '566');

@@ -24,6 +24,11 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
         _setupRole(NFT_FACTORY_ROLE, _nftFactory);
     }
 
+    function setBaseURI(string memory _baseURI) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        _setBaseURI(_baseURI);
+    }
+    
     function setNftURI(uint level, uint category, uint item, string memory URI) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         nftURI[level][category][item] = URI;

@@ -158,7 +158,7 @@ contract ZooKeeperFarming is Ownable {
 
     // Add a new lp to the pool. Can only be called by the owner.
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
-    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate, uint _waspPid) public onlyOwner {
+    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate, uint _waspPid, bool _dualFarmingEnable) public onlyOwner {
         if (_withUpdate) {
             massUpdatePools();
         }
@@ -171,7 +171,7 @@ contract ZooKeeperFarming is Ownable {
             accZooPerShare: 0,
             waspPid: _waspPid,
             accWaspPerShare: 0,
-            dualFarmingEnable: false
+            dualFarmingEnable: _dualFarmingEnable
         }));
     }
 

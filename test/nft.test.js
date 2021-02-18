@@ -18,9 +18,9 @@ contract("ZooNFTDelegate", accounts => {
 
     try {
       await zooNFTDelegate.setNFTFactory(accounts[1], {from: accounts[1]});
-      assert.fail("never go here.");
-    } catch (error) {
-      
+      assert.fail('never go here');
+    } catch (e) {
+      assert.ok(e.message.match(/revert/));
     }
 
     await zooNFTDelegate.setScaleParams(1e11, 1e10, 1e9, 1e7);
@@ -31,8 +31,10 @@ contract("ZooNFTDelegate", accounts => {
 
     try {
       await zooNFTDelegate.mint(1, 1, 1, 1, 100);
-      assert.fail("never go here.");
-    } catch (err) {}
+      assert.fail('never go here');
+    } catch (e) {
+      assert.ok(e.message.match(/revert/));
+    }
 
     await zooNFTDelegate.mint(1, 1, 1, 1, 100, {from: accounts[1]});
 

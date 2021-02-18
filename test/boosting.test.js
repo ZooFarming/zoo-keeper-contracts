@@ -6,7 +6,9 @@ const MockERC20 = artifacts.require('MockERC20');
 const ZooNFTDelegate = artifacts.require('ZooNFTDelegate');
 const BoostingDelegate = artifacts.require('BoostingDelegate');
 
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+const sleep = require('ko-sleep');
 
 const assert = require('assert');
 
@@ -35,9 +37,11 @@ contract("BoostingDelegate", ([alice, bob, carol, dev, minter]) => {
     await boostingDelegate.initialize(alice);
 
     try {
-      await boostingDelegate.setFarmingAddr(accounts[4], {from: bob});
-      assert.fail("never go here.");
-    } catch (err) { }
+      await boostingDelegate.setFarmingAddr(minter, {from: bob});
+      assert.fail('never go here');
+    } catch (e) { 
+      assert.ok(e.message.match(/revert/));
+    }
 
     const zoo = await ZooToken.new({ from: alice });
     const farm = await ZooKeeperFarming.new(zoo.address, dev,
@@ -81,6 +85,62 @@ contract("BoostingDelegate", ([alice, bob, carol, dev, minter]) => {
     ret = await farm.pendingZoo(0, bob);
     assert.strictEqual((await zoo.balanceOf(bob)).toString(), '1413');
     assert.strictEqual((await zoo.balanceOf(dev)).toString(), '395');
+
+    await farm.deposit(0, '200', 0, 0, { from: alice });
+    await time.advanceBlock();
+
+    assert.strictEqual('50', (await farm.pendingZoo(0, alice)).toString());
+    assert.strictEqual('151', (await farm.pendingZoo(0, bob)).toString());
+
+    await farm.deposit(0, '0', 3600*24*30, 0, { from: alice });
+    await farm.withdraw(0, '0', { from: bob });
+    await time.advanceBlock();
+    await time.advanceBlock();
+    await time.advanceBlock();
+
+    console.log('alice', (await farm.pendingZoo(0, alice)).toString());
+    console.log('bob', (await farm.pendingZoo(0, bob)).toString());
+    assert.strictEqual('220', (await farm.pendingZoo(0, alice)).toString());
+    assert.strictEqual('151', (await farm.pendingZoo(0, bob)).toString());
+
+    try {
+      await farm.withdraw(0, '100', { from: alice });
+      assert.fail('never go here');
+    } catch (e) { 
+      console.log(e);
+      assert.ok(e.message.match(/revert/));
+    }
+    await farm.withdraw(0, '0', { from: alice });
+    await farm.withdraw(0, '200', { from: bob });
+
+
+    console.log('alice zoo', (await zoo.balanceOf(alice)).toString());
+    console.log('bob lp', (await lp.balanceOf(bob)).toString());
+    console.log('bob zoo', (await zoo.balanceOf(bob)).toString());
+
+
+    // assert.strictEqual('430', (await zoo.balanceOf(alice)).toString());
+
+    await farm.deposit(0, '100', 10, 0, { from: carol });
+    console.log('carol zoo', (await zoo.balanceOf(carol)).toString());
+    console.log('carol lp', (await lp.balanceOf(carol)).toString());
+    try {
+      await farm.withdraw(0, '100', { from: carol });
+      console.log('never go here.');
+      assert.fail('never go here');
+    } catch (e) { 
+      assert.ok(e.message.match(/revert/));
+    }
+    await sleep(6000);
+    await time.advanceBlock();
+    await sleep(6000);
+    await time.advanceBlock();
+    console.log('carol zoo', (await zoo.balanceOf(carol)).toString());
+    console.log('carol lp', (await lp.balanceOf(carol)).toString());
+    await farm.withdraw(0, '10', { from: carol });
+    console.log('carol zoo', (await zoo.balanceOf(carol)).toString());
+    console.log('carol lp', (await lp.balanceOf(carol)).toString());
+
 
     console.log(ret.toString());
   });

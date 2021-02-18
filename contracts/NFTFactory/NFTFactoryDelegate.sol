@@ -152,9 +152,9 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
 
     /// @dev Stake ZOO to get NFT
     /// @param _type value: 
-    /// 0: lock 48 hours to get lv1 NFT
-    /// 1: lock 7 days to get lv2 NFT
-    /// 2: lock 14 days to get lv3 NFT
+    /// 0: lock x10 48 hours to get golden chest
+    /// 1: lock x1 15 days to get golden chest
+    /// 2: lock x0.5 30 days to get golden chest
     function stakeZoo(uint _type) public {
         require(isStakeFinished(_type), "There is still pending stake");
         require(_type < stakePlanCount, "_type error");
@@ -164,15 +164,17 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         // every 1 order, the price goes up 1%
         lastPrice = currentPrice.mul(priceUp0).div(priceUp1);
 
-        stakeInfo[msg.sender][_type].stakeAmount = currentPrice;
         stakeInfo[msg.sender][_type].startTime = block.timestamp;
 
         if (_type == 0) {
+            stakeInfo[msg.sender][_type].stakeAmount = currentPrice.mul(10);
             stakeInfo[msg.sender][_type].lockTime = 48 hours;
         } else if (_type == 1) {
-            stakeInfo[msg.sender][_type].lockTime = 7 days;
+            stakeInfo[msg.sender][_type].stakeAmount = currentPrice;
+            stakeInfo[msg.sender][_type].lockTime = 15 days;
         } else {
-            stakeInfo[msg.sender][_type].lockTime = 14 days;
+            stakeInfo[msg.sender][_type].stakeAmount = currentPrice.div(2);
+            stakeInfo[msg.sender][_type].lockTime = 30 days;
         }
 
         IERC20(zooToken).transferFrom(msg.sender, address(this), currentPrice);
@@ -197,7 +199,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         delete stakeInfo[msg.sender][_type];
 
         //mint NFT
-        mintLeveledNFT(_type + 1);
+        randomNFT(true);
 
         IERC20(zooToken).transferFrom(address(this), msg.sender, amount);
     }

@@ -44,6 +44,9 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         priceDown0 = 99;
         priceDown1 = 100;
         stakePlanCount = 3;
+        dynamicPriceTimeUnit = 1 hours;
+        dynamicMinPrice = 2000 ether;
+        dynamicMaxPrice = 100000 ether;
     }
 
     function configTokenAddress(address _zooToken, address _zooNFT) external {
@@ -55,6 +58,13 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
     function configChestPrice(uint _golden) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         goldenChestPrice = _golden;
+    }
+
+    function configDynamicPrice(uint _dynamicPriceTimeUnit, uint _dynamicMinPrice, uint _dynamicMaxPrice) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        dynamicPriceTimeUnit = _dynamicPriceTimeUnit;
+        dynamicMinPrice = _dynamicMinPrice;
+        dynamicMaxPrice = _dynamicMaxPrice;
     }
 
     function configNFTParams(uint _maxLevel, uint _maxNFTCategory, uint _maxNFTItem, uint _maxNFTRandom) external {
@@ -81,7 +91,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
     function buyGoldenChest() public {
         uint currentPrice = queryGoldenPrice();
         lastOrderTimestamp = block.timestamp;
-        lastPrice = currentPrice.mul(priceUp0).div(priceUp1);
+        priceRaise(currentPrice);
 
         IERC20(zooToken).transferFrom(msg.sender, address(this), currentPrice);
         IZooToken(zooToken).burn(currentPrice);
@@ -102,7 +112,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         uint currentPrice = queryGoldenPrice();
         lastOrderTimestamp = block.timestamp;
         // every 1 order, the price goes up 1%
-        lastPrice = currentPrice.mul(priceUp0).div(priceUp1);
+        priceRaise(currentPrice);
 
         // silver chest price is 1/10 golden chest price
         currentPrice = currentPrice.div(10);
@@ -141,13 +151,24 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
             return goldenChestPrice;
         }
 
-        uint hourPassed = (block.timestamp - lastOrderTimestamp).div(1 hours);
+        uint hourPassed = (block.timestamp - lastOrderTimestamp).div(dynamicPriceTimeUnit);
         if (hourPassed == 0) {
             return lastPrice;
         }
 
         // every 1 hour idle, price goes down 1%
+        if (lastPrice.mul(priceDown0**hourPassed).div(priceDown1**hourPassed) < dynamicMinPrice) {
+            return dynamicMinPrice;
+        }
         return lastPrice.mul(priceDown0**hourPassed).div(priceDown1**hourPassed);
+    }
+
+    function priceRaise(uint currentPrice) private {
+        if (currentPrice.mul(priceUp0).div(priceUp1) > dynamicMaxPrice) {
+            lastPrice = dynamicMaxPrice;
+        } else {
+            lastPrice = currentPrice.mul(priceUp0).div(priceUp1);
+        }
     }
 
     /// @dev Stake ZOO to get NFT
@@ -162,7 +183,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         uint currentPrice = queryGoldenPrice();
         lastOrderTimestamp = block.timestamp;
         // every 1 order, the price goes up 1%
-        lastPrice = currentPrice.mul(priceUp0).div(priceUp1);
+        priceRaise(currentPrice);
 
         stakeInfo[msg.sender][_type].startTime = block.timestamp;
 
@@ -213,7 +234,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         uint random1 = uint(keccak256(abi.encode(msg.sender, blockhash(block.number - 1), block.timestamp, totalSupply)));
         uint random2 = uint(keccak256(abi.encode(random1)));
         uint random3 = uint(keccak256(abi.encode(random2)));
-        if (random2.add(random3).mod(10) == 6) {
+        if (random2.mod(1000).add(random3.mod(1000)).mod(10) == 6) {
             return true;
         }
         return false;

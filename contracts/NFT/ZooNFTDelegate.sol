@@ -61,7 +61,7 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
         if (tokenInfo[_tokenId].level == 0) {
             return MULTIPLIER_SCALE;
         }
-        return tokenInfo[_tokenId].level.sub(1).mul(scaleParams.a) + tokenInfo[_tokenId].category.mul(scaleParams.b) + tokenInfo[_tokenId].item.mul(scaleParams.c) + tokenInfo[_tokenId].random.mul(scaleParams.d);
+        return MULTIPLIER_SCALE.add(tokenInfo[_tokenId].level.sub(1).mul(scaleParams.a).add(tokenInfo[_tokenId].category.mul(scaleParams.b).add(tokenInfo[_tokenId].item.mul(scaleParams.c).add(tokenInfo[_tokenId].random.mul(scaleParams.d)))));
     }
     
     function mint(uint tokenId, uint _level, uint _category, uint _item, uint _random) external {

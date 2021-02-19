@@ -100,7 +100,7 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
         uint boosting = info.lockTime.div(1 days).mul(MULTIPLIER_SCALE).mul(scaleB).div(scaleA).add(MULTIPLIER_SCALE);
         uint nftBoosting = MULTIPLIER_SCALE;
         if (info.tokenId != 0x0) {
-            nftBoosting = nftBoosting.add(IZooNFT(NFTAddress).getBoosting(info.tokenId));
+            nftBoosting = IZooNFT(NFTAddress).getBoosting(info.tokenId);
         }
 
         if (boosting != 0x0) {

@@ -4,25 +4,48 @@ const ZooNFTDelegate = artifacts.require('ZooNFTDelegate');
 const assert = require('assert');
 
 contract("ZooKeeperProxy", accounts => {
-  it("all", async () => {
-    const zooNFTDelegate = await ZooNFTDelegate.new();
-    const zooNFTProxy = await ZooKeeperProxy.new(zooNFTDelegate.address, accounts[1], '0x');
+  let zooNFTProxy;
+  let zooNFTDelegate;
+  let zooNFTDelegate2;
 
-    const zoo = await ZooNFTDelegate.at(zooNFTProxy.address);
+  beforeEach(async ()=>{
+    zooNFTDelegate = await ZooNFTDelegate.new();
+    zooNFTDelegate2 = await ZooNFTDelegate.new();
+    zooNFTProxy = await ZooKeeperProxy.new(zooNFTDelegate.address, accounts[1], '0x');
+  });
 
-    await zoo.initialize(accounts[0]);
-
-    const zooNFTDelegate2 = await ZooNFTDelegate.new();
-
+  it("should success when upgrade", async () => {
     await zooNFTProxy.upgradeTo(zooNFTDelegate2.address, {from: accounts[1]});
+  });
 
+  it("should failed when upgrade without access", async () => {
+    try {
+      await zooNFTProxy.upgradeTo(zooNFTDelegate2.address, {from: accounts[0]});
+      assert.fail('never go here');
+    } catch (e) {
+      assert.ok(e.message.match(/revert/));
+    }
+  });
+
+  it("should success when changeAdmin", async () => {
     await zooNFTProxy.changeAdmin(accounts[2], {from: accounts[1]});
 
-    const zooNFTDelegate3 = await ZooNFTDelegate.new();
+  });
 
-    await zooNFTProxy.upgradeTo(zooNFTDelegate3.address, {from: accounts[2]});
+  it("should failed when changeAdmin without access", async () => {
 
-    // await zoo.changeAdmin(accounts[3], {from: accounts[0]});
+    try {
+    await zooNFTProxy.changeAdmin(accounts[2], {from: accounts[3]});
+
+      assert.fail('never go here');
+    } catch (e) {
+      assert.ok(e.message.match(/revert/));
+    }
+  });
+
+  it("should success when call to delegate function", async () => {
+    const zoo = await ZooNFTDelegate.at(zooNFTProxy.address);
+    await zoo.initialize(accounts[0]);
     let ret = await zoo.getRoleMember('0x00', 0);
     assert.strictEqual(accounts[0], ret);
     await zoo.grantRole('0x00', accounts[3]);
@@ -31,8 +54,16 @@ contract("ZooKeeperProxy", accounts => {
     await zoo.renounceRole('0x00', accounts[0]);
     ret = await zoo.getRoleMember('0x00', 0);
     assert.strictEqual(accounts[3], ret);
+  });
 
-    console.log(ret);
+  it("should failed when call to delegate function without access", async () => {
+    try {
+      const zoo = await ZooNFTDelegate.at(zooNFTProxy.address);
+      await zoo.initialize(accounts[0], {from: accounts[1]});
+      assert.fail('never go here');
+    } catch (e) {
+      assert.ok(e.message.match(/revert/));
+    }
   });
 });
 

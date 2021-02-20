@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
+
 import "./NFTFactoryStorage.sol";
 
 interface IZooToken {
@@ -19,7 +21,7 @@ interface IZooNFTMint {
 }
 
 // NFTFactory
-contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
+contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFactoryStorage {
     using SafeERC20 for IERC20;
 
     event MintNFT(uint indexed level, uint indexed category, uint indexed item, uint random, uint tokenId);
@@ -28,7 +30,9 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
     
     event SilverBuy(address indexed user, uint price);
 
-    event ZooStake(address indexed _user, uint _price, uint _type);
+    event ZooStake(address indexed user, uint price, uint _type);
+
+    event ZooClaim(address indexed user, uint price, uint _type, uint tokenId);
 
     function initialize(address admin, address _zooToken, address _zooNFT) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
@@ -43,10 +47,21 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         priceUp1 = 100;
         priceDown0 = 99;
         priceDown1 = 100;
-        stakePlanCount = 3;
         dynamicPriceTimeUnit = 1 hours;
         dynamicMinPrice = 2000 ether;
         dynamicMaxPrice = 100000 ether;
+        lastOrderTimestamp = block.timestamp;
+        lastPrice = goldenChestPrice;
+        stakePlanCount = 3;
+        stakePlan[0].priceMul = 10;
+        stakePlan[0].priceDiv = 1;
+        stakePlan[0].lockTime = 48 hours;
+        stakePlan[1].priceMul = 1;
+        stakePlan[1].priceDiv = 1;
+        stakePlan[1].lockTime = 15 days;
+        stakePlan[2].priceMul = 1;
+        stakePlan[2].priceDiv = 2;
+        stakePlan[2].lockTime = 30 days;
     }
 
     function configTokenAddress(address _zooToken, address _zooNFT) external {
@@ -58,6 +73,8 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
     function configChestPrice(uint _golden) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         goldenChestPrice = _golden;
+        lastOrderTimestamp = block.timestamp;
+        lastPrice = goldenChestPrice;
     }
 
     function configDynamicPrice(uint _dynamicPriceTimeUnit, uint _dynamicMinPrice, uint _dynamicMaxPrice) external {
@@ -83,9 +100,16 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         priceDown1 = _down1;
     }
 
-    function configStakePlan(uint _stakePlanCount) external {
+    function configStakePlanCount(uint _stakePlanCount) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         stakePlanCount = _stakePlanCount;
+    }
+
+    function configStakePlanInfo(uint id, uint priceMul, uint priceDiv, uint lockTime) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        stakePlan[id].priceMul = priceMul;
+        stakePlan[id].priceDiv = priceDiv;
+        stakePlan[id].lockTime = lockTime;
     }
 
     function buyGoldenChest() public {
@@ -127,11 +151,15 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
             success = isSilverSuccess();
         }
 
+        emit SilverBuy(msg.sender, currentPrice);
+
         if (!success) {
             emptyTimes[msg.sender]++;
             emit MintNFT(0, 0, 0, 0, 0);
             return;
         }
+
+        emptyTimes[msg.sender] = 0;
 
         uint tokenId;
         uint level;
@@ -143,7 +171,6 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         IZooNFTMint(zooNFT).mint(tokenId, level, category, item, random);
         IERC721(zooNFT).safeTransferFrom(address(this), msg.sender, tokenId);
         emit MintNFT(level, category, item, random, tokenId);
-        emit SilverBuy(msg.sender, currentPrice);
     }
 
     function queryGoldenPrice() public view returns (uint) {
@@ -187,21 +214,15 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
 
         stakeInfo[msg.sender][_type].startTime = block.timestamp;
 
-        if (_type == 0) {
-            stakeInfo[msg.sender][_type].stakeAmount = currentPrice.mul(10);
-            stakeInfo[msg.sender][_type].lockTime = 48 hours;
-        } else if (_type == 1) {
-            stakeInfo[msg.sender][_type].stakeAmount = currentPrice;
-            stakeInfo[msg.sender][_type].lockTime = 15 days;
-        } else {
-            stakeInfo[msg.sender][_type].stakeAmount = currentPrice.div(2);
-            stakeInfo[msg.sender][_type].lockTime = 30 days;
-        }
+        uint stakePrice = currentPrice.mul(stakePlan[_type].priceMul).div(stakePlan[_type].priceDiv);
+        stakeInfo[msg.sender][_type].stakeAmount = stakePrice;
+        stakeInfo[msg.sender][_type].lockTime = stakePlan[_type].lockTime;
 
-        IERC20(zooToken).transferFrom(msg.sender, address(this), currentPrice);
-        emit ZooStake(msg.sender, currentPrice, _type);
+        IERC20(zooToken).transferFrom(msg.sender, address(this), stakePrice);
+        emit ZooStake(msg.sender, stakePrice, _type);
     }
 
+    /// @dev must have no stake in it
     function isStakeable(uint _type) public view returns (bool) {
         if (_type >= stakePlanCount) {
             return false;
@@ -220,9 +241,19 @@ contract NFTFactoryDelegate is Initializable, AccessControl, NFTFactoryStorage {
         delete stakeInfo[msg.sender][_type];
 
         //mint NFT
-        randomNFT(true);
+        uint tokenId;
+        uint level;
+        uint category;
+        uint item;
+        uint random;
+        (tokenId, level, category, item, random) = randomNFT(true);
 
-        IERC20(zooToken).transferFrom(address(this), msg.sender, amount);
+        IZooNFTMint(zooNFT).mint(tokenId, level, category, item, random);
+        IERC721(zooNFT).safeTransferFrom(address(this), msg.sender, tokenId);
+        emit MintNFT(level, category, item, random, tokenId);
+
+        IERC20(zooToken).safeTransfer(msg.sender, amount);
+        emit ZooClaim(msg.sender, amount, _type, tokenId);
     }
 
     function isStakeFinished(uint _type) public view returns (bool) {

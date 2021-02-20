@@ -12,10 +12,19 @@ contract NFTFactoryStorage {
         uint stakeAmount;
     }
 
+    struct StakePlan {
+        uint priceMul;
+        uint priceDiv;
+        uint lockTime;
+    }
+
     // user => stake type => stake info
     mapping(address => mapping(uint => StakeInfo)) public stakeInfo;
 
     mapping(address => uint) public emptyTimes;
+
+    // id => plan
+    mapping(uint => StakePlan) public stakePlan;
 
     uint public goldenChestPrice;
 

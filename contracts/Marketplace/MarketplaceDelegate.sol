@@ -85,8 +85,9 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         return orderIds.length();
     }
 
-    function getOrderId(uint index) public view returns (uint) {
-        return orderIds.at(index);
+    function getOrderId(uint index) public view returns (uint, bool) {
+        uint id = orderIds.at(index);
+        return (id, checkOrderValid(id));
     }
 
     function getOrderById(uint orderId) public view returns (address owner, uint tokenId, address token, uint price, uint expiration, uint createTime) {
@@ -118,7 +119,7 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
 
     function cleanInvalidOrders(uint from, uint to) public {
         require(to >= from, "to should >= from");
-        for (uint i=to; i>= from; i++) {
+        for (uint i=to; i>= from; i--) {
             uint orderId = orderIds.at(i);
             if (!checkOrderValid(orderId)) {
                 OrderInfo memory info = orders[orderId];

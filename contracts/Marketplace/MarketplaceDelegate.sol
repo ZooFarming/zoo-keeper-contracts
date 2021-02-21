@@ -27,6 +27,12 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         minExpirationTime = 1 days;
     }
 
+    function configExpiration(uint _minExpirationTime, uint _maxExpirationTime) public {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        maxExpirationTime = _maxExpirationTime;
+        minExpirationTime = _minExpirationTime;
+    }
+
     /// @dev createOrder is called by a seller
     /// @param _nftContract is the NFT contract address
     /// @param _tokenId is the NFT tokenId
@@ -38,7 +44,7 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         require(IERC721(_nftContract).isApprovedForAll(msg.sender, address(this)), "Must approve first");
         require(_expiration <= maxExpirationTime, "expiration too large");
         require(_expiration >= minExpirationTime, "expiration too small");
-        uint orderId = uint(keccak256(abi.encode(msg.sender, _tokenId)));
+        uint orderId = uint(keccak256(abi.encode(msg.sender, _tokenId, _nftContract, _token)));
         address owner = orders[orderId].owner;
         require(owner == address(0), "order exist");
         require(_nftContract != address(0), "_nftContract error");
@@ -58,10 +64,14 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         emit CreateOrder(_nftContract, _tokenId, _token, _price, _expiration);
     }
 
-    function cancelOrder(uint _tokenId) external {
-        uint orderId = uint(keccak256(abi.encode(msg.sender, _tokenId)));
+    /// @param _nftContract is the NFT contract address
+    /// @param _tokenId is the NFT tokenId
+    /// @param _token is the pay token contract address for buyer
+    function cancelOrder(address _nftContract, uint _tokenId, address _token) external {
+        uint orderId = uint(keccak256(abi.encode(msg.sender, _tokenId, _nftContract, _token)));
         address owner = orders[orderId].owner;
         require(owner != address(0), "order not exist");
+        require(owner == msg.sender, "order not yours");
         orderIds.remove(orderId);
         delete orders[orderId];
 
@@ -85,7 +95,7 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         return orderIds.length();
     }
 
-    function getOrderId(uint index) public view returns (uint, bool) {
+    function getOrderId(uint index) public view returns (uint orderId, bool isValid) {
         uint id = orderIds.at(index);
         return (id, checkOrderValid(id));
     }
@@ -117,10 +127,10 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         return true;
     }
 
-    function cleanInvalidOrders(uint from, uint to) public {
+    function cleanInvalidOrders(int from, int to) public {
         require(to >= from, "to should >= from");
-        for (uint i=to; i>= from; i--) {
-            uint orderId = orderIds.at(i);
+        for (int i=to; i>= from; i--) {
+            uint orderId = orderIds.at(uint(i));
             if (!checkOrderValid(orderId)) {
                 OrderInfo memory info = orders[orderId];
                 orderIds.remove(orderId);

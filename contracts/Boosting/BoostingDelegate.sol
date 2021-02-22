@@ -81,7 +81,7 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
     }
 
     function checkWithdraw(uint _pid, address _user) public view returns (bool) {
-        return block.timestamp > getExpirationTime(_pid, _user);
+        return block.timestamp >= getExpirationTime(_pid, _user);
     }
 
     function getExpirationTime(uint _pid, address _user) public view returns (uint) {

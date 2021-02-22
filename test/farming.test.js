@@ -7,6 +7,7 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 
 contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
+    return;
     console.log("Please remember to restart ganache-cli before each test.")
 
     beforeEach(async () => {

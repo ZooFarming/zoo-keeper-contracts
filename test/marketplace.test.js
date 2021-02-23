@@ -12,12 +12,12 @@ contract("MarketplaceDelegate", ([alice, lucy, jack, tom, molin, dev]) => {
     let nft;
     beforeEach(async ()=>{
       zoo = await ZooToken.new();
-      zoo.mint(alice, '1000000');
-      zoo.mint(lucy, '1000000');
-      zoo.mint(jack, '1000000');
-      zoo.mint(tom, '1000000');
-      zoo.mint(molin, '1000000');
-      zoo.mint(dev, '100');
+      await zoo.mint(alice, '1000000');
+      await zoo.mint(lucy, '1000000');
+      await zoo.mint(jack, '1000000');
+      await zoo.mint(tom, '1000000');
+      await zoo.mint(molin, '1000000');
+      await zoo.mint(dev, '100');
   
       nft = await ZooNFTDelegate.new();
       await nft.initialize(dev);
@@ -34,19 +34,19 @@ contract("MarketplaceDelegate", ([alice, lucy, jack, tom, molin, dev]) => {
       market = await MarketplaceDelegate.new();
       await market.initialize(dev);
       
-      zoo.approve(market.address, '10000000000000000', {from: alice});
-      zoo.approve(market.address, '1000000', {from: lucy});
-      zoo.approve(market.address, '1000000', {from: jack});
-      zoo.approve(market.address, '100', {from: tom});
-      zoo.approve(market.address, '1000000', {from: molin});
-      zoo.approve(market.address, '1000000', {from: dev});
+      await zoo.approve(market.address, '10000000000000000', {from: alice});
+      await zoo.approve(market.address, '1000000', {from: lucy});
+      await zoo.approve(market.address, '1000000', {from: jack});
+      await zoo.approve(market.address, '100', {from: tom});
+      await zoo.approve(market.address, '1000000', {from: molin});
+      await zoo.approve(market.address, '1000000', {from: dev});
 
-      nft.setApprovalForAll(market.address, true, {from: alice});
-      nft.setApprovalForAll(market.address, true, {from: lucy});
-      nft.setApprovalForAll(market.address, true, {from: jack});
-      nft.setApprovalForAll(market.address, true, {from: tom});
-      nft.setApprovalForAll(market.address, true, {from: molin});
-      nft.setApprovalForAll(market.address, true, {from: dev});
+      await nft.setApprovalForAll(market.address, true, {from: alice});
+      await nft.setApprovalForAll(market.address, true, {from: lucy});
+      await nft.setApprovalForAll(market.address, true, {from: jack});
+      await nft.setApprovalForAll(market.address, true, {from: tom});
+      await nft.setApprovalForAll(market.address, true, {from: molin});
+      await nft.setApprovalForAll(market.address, true, {from: dev});
     });
 
   it("should success when create sell order", async () => { 

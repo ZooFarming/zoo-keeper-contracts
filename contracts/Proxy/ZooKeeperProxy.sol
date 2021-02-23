@@ -3,7 +3,6 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
 // ZooKeeperProxy is only used for 4 upgradeable contract:
 // Boosting, NFT, NFT factory, Marketplace

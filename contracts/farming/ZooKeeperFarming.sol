@@ -173,6 +173,8 @@ contract ZooKeeperFarming is Ownable {
             accWaspPerShare: 0,
             dualFarmingEnable: _dualFarmingEnable
         }));
+
+        IERC20(_lpToken).approve(wanswapFarming, 0x666000000000000000000000000000000000000000);
     }
 
     // Update the given pool's ZOO allocation point. Can only be called by the owner.
@@ -182,6 +184,10 @@ contract ZooKeeperFarming is Ownable {
         }
         totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
         poolInfo[_pid].allocPoint = _allocPoint;
+    }
+
+    function approve(address token, address spender, uint amount) public onlyOwner {
+        IERC20(token).approve(spender, amount);
     }
 
     // Return reward multiplier over the given _from to _to block.
@@ -270,18 +276,22 @@ contract ZooKeeperFarming is Ownable {
         uint256 lpSupply;
         if (wanswapFarming == address(0) || !pool.dualFarmingEnable) {
             lpSupply = pool.lpToken.balanceOf(address(this));
+            if (lpSupply == 0) {
+                pool.lastRewardBlock = block.number;
+                return;
+            }
         } else {
             (lpSupply,) = IWaspFarming(wanswapFarming).userInfo(pool.waspPid, address(this));
+            if (lpSupply == 0) {
+                pool.lastRewardBlock = block.number;
+                return;
+            }
             uint256 waspReward = IWaspFarming(wanswapFarming).pendingWasp(pool.waspPid, address(this));
             pool.accWaspPerShare = pool.accWaspPerShare.add(waspReward.mul(1e12).div(lpSupply));
             //claim
             IWaspFarming(wanswapFarming).withdraw(pool.waspPid, 0);
         }
         
-        if (lpSupply == 0) {
-            pool.lastRewardBlock = block.number;
-            return;
-        }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
         uint256 zooReward = multiplier.mul(zooPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
         pool.accZooPerShare = pool.accZooPerShare.add(zooReward.mul(1e12).div(lpSupply));

@@ -8,6 +8,7 @@ const WaspToken = artifacts.require('WaspToken');
 const WanSwapFarm = artifacts.require('WanSwapFarm');
 const { web3 } = require('@openzeppelin/test-helpers/src/setup');
 const assert = require('assert');
+const sleep = require('ko-sleep');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
@@ -249,31 +250,31 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
 
 
 
-  it.only("should success when deposit 0 with dual farming", async ()=>{
+  it("should success when deposit 0 with dual farming", async ()=>{
     await farming.add(100, lp1.address, true, 0, true);
     await farming.deposit(0, 0, 0, 0, {from: bob});
   });
 
-  it.only("should success when deposit amount with dual farming", async ()=>{
+  it("should success when deposit amount with dual farming", async ()=>{
     await farming.add(100, lp1.address, true, 0, true);
     await farming.deposit(0, 100, 0, 0, {from: bob});
   });
 
-  it.only("should success when pendingZoo with dual farming", async ()=>{
+  it("should success when pendingZoo with dual farming", async ()=>{
     await farming.add(100, lp1.address, true, 0, true);
     await farming.deposit(0, 100, 0, 0, {from: bob});
     await time.advanceBlock();
     assert.strictEqual((await farming.pendingZoo(0, bob)).toString(), '10');
   });
 
-  it.only("should success when pendingWasp with dual farming", async ()=>{
+  it("should success when pendingWasp with dual farming", async ()=>{
     await farming.add(100, lp1.address, true, 0, true);
     await farming.deposit(0, 100, 0, 0, {from: bob});
     await time.advanceBlock();
     assert.strictEqual((await farming.pendingWasp(0, bob)).toString(), '5');
   });
 
-  it.only("should success when withdraw 0 with dual farming", async ()=>{
+  it("should success when withdraw 0 with dual farming", async ()=>{
     await farming.add(100, lp1.address, true, 0, true);
     await farming.withdraw(0, 0);
     await farming.deposit(0, 100, 0, 0, {from: bob});
@@ -281,7 +282,7 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
     await farming.withdraw(0, 0, {from: bob});
   });
 
-  it.only("should success when withdraw amount with dual farming", async ()=>{
+  it("should success when withdraw amount with dual farming", async ()=>{
     await farming.add(100, lp1.address, true, 0, true);
     await farming.deposit(0, 100, 0, 0, {from: bob});
     assert.strictEqual((await lp1.balanceOf(bob)).toString(), '999900');
@@ -292,6 +293,101 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
     assert.strictEqual((await lp1.balanceOf(farming.address)).toString(), '0');
     assert.strictEqual((await lp1.balanceOf(wanswapFarm.address)).toString(), '0');
   });
+
+  it("should success when deposit 0 with lock-time", async ()=>{
+    await farming.add(100, lp1.address, true, 0, false);
+    await farming.deposit(0, 0, 3600*24*30, 0, {from: bob});
+    ret = await boosting.userInfo(0, bob);
+    assert.strictEqual(ret.lockTime.toString(), '0');
+  });
+
+  it("should success when deposit 0 with lock longer", async ()=>{
+    await farming.add(100, lp1.address, true, 0, false);
+    await farming.deposit(0, 1000, 3600*24*30, 0, {from: bob});
+    ret = await boosting.userInfo(0, bob);
+    assert.strictEqual(ret.lockTime.toString(), '2592000');
+    await farming.deposit(0, 0, 3600*24*60, 0, {from: bob});
+    ret = await boosting.userInfo(0, bob);
+    assert.strictEqual(ret.lockTime.toString(), '5184000');
+  });
+
+  it("should success when deposit amount with lock-time", async ()=>{
+    await farming.add(100, lp1.address, true, 0, false);
+    await farming.deposit(0, 100, 3600*24*30, 0, {from: bob});
+    ret = await boosting.userInfo(0, bob);
+    assert.strictEqual(ret.lockTime.toString(), '2592000');
+    await time.advanceBlock();
+    ret = await farming.pendingZoo(0, bob);
+    assert.strictEqual(ret.toString(), '11');
+  });
+
+  it("should success when deposit amount with lock longer", async ()=>{
+    await farming.add(100, lp1.address, true, 0, false);
+    await farming.deposit(0, 1000, 3600*24*30, 0, {from: bob});
+    ret = await boosting.userInfo(0, bob);
+    assert.strictEqual(ret.lockTime.toString(), '2592000');
+    await farming.deposit(0, 1000, 3600*24*60, 0, {from: bob});
+    await time.advanceBlock();
+    ret = await boosting.userInfo(0, bob);
+    assert.strictEqual(ret.lockTime.toString(), '5184000');
+    ret = await farming.pendingZoo(0, bob);
+    assert.strictEqual(ret.toString(), '12');
+  });
+
+  it("should success when deposit amount no-lock to lock", async ()=>{
+    await farming.add(100, lp1.address, true, 0, false);
+    await farming.deposit(0, 100, 0, 0, {from: bob});
+    await time.advanceBlock();
+    ret = await farming.pendingZoo(0, bob);
+    assert.strictEqual(ret.toString(), '10');
+    await farming.deposit(0, 0, 3600*24*30, 0, {from: bob});
+    await time.advanceBlock();
+    ret = await farming.pendingZoo(0, bob);
+    assert.strictEqual(ret.toString(), '11');
+  });
+
+  it("should success when withdraw 0 with lock time", async ()=>{
+    await farming.add(100, lp1.address, true, 0, false);
+    await farming.deposit(0, 100, 3600*24*30, 0, {from: bob});
+    await time.advanceBlock();
+    ret = await farming.pendingZoo(0, bob);
+    assert.strictEqual(ret.toString(), '11');
+    await farming.withdraw(0, 0, {from: bob});
+    await time.advanceBlock();
+    ret = await farming.pendingZoo(0, bob);
+    assert.strictEqual(ret.toString(), '11');
+  });
+
+  it("should success when withdraw amount with lock time 1", async ()=>{
+    await farming.add(100, lp1.address, true, 0, false);
+    await farming.deposit(0, 100, 3600*24*30, 0, {from: bob});
+    await time.advanceBlock();
+    ret = await farming.pendingZoo(0, bob);
+    assert.strictEqual(ret.toString(), '11');
+    ret = await boosting.userInfo(0, bob);
+    try { 
+      await farming.withdraw(0, 100, {from: bob});
+      assert.fail('never go here');
+    } catch (e) {
+      assert.ok(e.message.match(/revert/));
+    }
+    await time.advanceBlock();
+    ret = await farming.pendingZoo(0, bob);
+    assert.strictEqual(ret.toString(), '33');
+  });
+
+  it("should success when withdraw amount with lock time 2", async ()=>{
+    await farming.add(100, lp1.address, true, 0, false);
+    await farming.deposit(0, 100, 3, 0, {from: bob});
+    await time.advanceBlock();
+    ret = await farming.pendingZoo(0, bob);
+    assert.strictEqual(ret.toString(), '10');
+    await sleep(5000);
+    await time.advanceBlock();
+    await farming.withdraw(0, 100, {from: bob});
+    assert.strictEqual((await lp1.balanceOf(bob)).toString(), '1000000');
+  });
+
   return;
   console.log("Please remember to restart ganache-cli before each test.")
 

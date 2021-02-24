@@ -304,7 +304,7 @@ contract ZooKeeperFarming is Ownable {
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         uint userAmountOld = user.amount;
-        if (user.amount > 0) {
+        if (user.amount.add(_amount) > 0) {
             uint256 pending = user.amount.mul(pool.accZooPerShare).div(1e12).sub(user.rewardDebt);
             if (boostingAddr != address(0)) {
                 // multiplier from lockTime and NFT

@@ -68,6 +68,7 @@ contract("NFTFactoryDelegate", ([alice, lucy, jack, tom, molin, dev]) => {
   it("should success when buy golden chest", async () => { 
     let ret;
     let price = '30000';
+    await nftFactory.configChestPrice(price, {from: dev});
     ret = await nftFactory.buyGoldenChest({from: alice});
     assert.ok(Number(ret.logs[0].args.level.toString()) >= 1);
     assert.strictEqual(ret.logs[1].args.price.toString(), price);

@@ -137,12 +137,12 @@ contract("NFTFactoryDelegate", ([alice, lucy, jack, tom, molin, dev]) => {
     await nftFactory.configChestPrice('30000', {from: dev});
     await nftFactory.configDynamicPrice(3, 29000, 31000, {from: dev});
     let price = '30000';
+    await sleep(1500);
     for (let i=0; i<6; i++) {
       // console.log((await nftFactory.queryGoldenPrice()).toString(), price);
       assert.strictEqual((await nftFactory.queryGoldenPrice()).toString(), price);
       await time.advanceBlock();
       await sleep(3000);
-      await time.advanceBlock();
       price = Math.floor(price*0.99).toString();
       if (Number(price)<29000) {
         price = '29000';

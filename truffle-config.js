@@ -50,6 +50,11 @@ module.exports = {
      port: 8545,            // Standard Ethereum port (default: none)
      network_id: "*",       // Any network (default: none)
     },
+    coverage: {
+      host: "127.0.0.1",
+      port: 7545,
+      network_id: "*",
+    },
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port
@@ -76,6 +81,7 @@ module.exports = {
     // production: true    // Treats this network as if it was a public net. (default: false)
     // }
 
+    
     testnet: {
       provider: wanProvider,
       network_id: "3",

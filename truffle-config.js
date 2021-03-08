@@ -25,7 +25,7 @@
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
 const WanProvider = require('wanchain-truffle-sdk').WanProvider;
-const wanProvider = false && new WanProvider("", "http://192.168.1.2:8545");
+const wanProvider = new WanProvider("", "http://192.168.1.2:8545");
 
 module.exports = {
   /**
@@ -88,7 +88,7 @@ module.exports = {
       host: "127.0.0.1",
       port: 8545,
       skipDryRun: true,
-      gas: 1e7,
+      gas: 6e6,
       gasPrice: 1e9
     },
     mainnet: {

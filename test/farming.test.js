@@ -557,4 +557,26 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
 
   });
 
+  it("team zoo test", async ()=>{
+    await farming.add(100, lp1.address, true, 0, true);
+    assert.strictEqual((await lp1.balanceOf(alice)).toString(), '9000000');
+    await farming.deposit(0, 1000, 3600*24*30, 2, {from: alice});
+    assert.strictEqual((await nft.balanceOf(alice)).toString(), '1');
+    await time.advanceBlock();
+    ret = await farming.pendingZoo(0, alice);
+    assert.strictEqual(ret.toString(), '12');
+    ret = await farming.pendingWasp(0, alice);
+    assert.strictEqual(ret.toString(), '5');
+    assert.strictEqual((await lp1.balanceOf(alice)).toString(), '8999000');
+    await farming.withdraw(0, 0, {from: alice});
+    ret = await farming.pendingZoo(0, alice);
+    assert.strictEqual(ret.toString(), '0');
+    ret = await farming.pendingWasp(0, alice);
+    assert.strictEqual(ret.toString(), '0');
+    assert.strictEqual((await zoo.balanceOf(alice)).toString(), '1000024');
+    assert.strictEqual((await wasp.balanceOf(alice)).toString(), '10');
+    // console.log((await zoo.balanceOf(dev)).toString());
+    assert.strictEqual((await zoo.balanceOf(dev)).toString(), '1000005');
+  });
+
 });

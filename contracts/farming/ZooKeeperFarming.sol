@@ -102,6 +102,8 @@ contract ZooKeeperFarming is Ownable {
     // boosting controller contract address
     address public boostingAddr;
 
+    uint256 public constant TEAM_PERCENT = 23; 
+
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -407,7 +409,7 @@ contract ZooKeeperFarming is Ownable {
     }
 
     function mintZoo(uint amount) private {
-        zoo.mint(devaddr, amount.mul(28).div(100));
+        zoo.mint(devaddr, amount.mul(TEAM_PERCENT).div(100));
         zoo.mint(address(this), amount);
     }
 }

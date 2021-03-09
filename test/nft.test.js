@@ -7,6 +7,33 @@ contract("ZooNFTDelegate", accounts => {
   beforeEach(async ()=>{
     zooNFTDelegate = await ZooNFTDelegate.new();
     await zooNFTDelegate.initialize(accounts[0]);
+    // config boost
+    let pr =[];
+    for (let i=1; i<=4; i++) {
+      for (let c=1; c<=6; c++) {
+        for (let e=1; e<=5; e++) {
+          let ret = await zooNFTDelegate.getLevelChance(i, c, e);
+          pr.push(Number(Number(ret.toString())/1e10).toFixed(5));
+        }
+      }
+    }
+    
+    function unique (arr) {
+      return Array.from(new Set(arr))
+    }
+
+    let pn = unique(pr.sort().reverse());
+
+    let chances = [];
+    let boosts = [];
+    let reduces = [];
+    for(let i=0; i < pn.length; i++) {
+      chances.push('0x' + Number((pn[i]*1e10).toFixed(0)).toString(16));
+      boosts.push('0x' + Number(((i+1)*1e10).toFixed(0)).toString(16));
+      reduces.push('0x' + Number((1e10 + i*2e9).toFixed(0)).toString(16));
+    }
+
+    await zooNFTDelegate.setBoostMap(chances, boosts, reduces);
   });
 
   it("should success when set factory", async () => { 
@@ -17,21 +44,6 @@ contract("ZooNFTDelegate", accounts => {
   it("should failed when set factory without access", async () => {
     try {
       await zooNFTDelegate.setNFTFactory(accounts[1], {from: accounts[2]});
-
-      assert.fail('never go here');
-    } catch (e) {
-      assert.ok(e.message.match(/revert/));
-    }
-  });
-
-  it("should success when setScaleParams", async () => { 
-    await zooNFTDelegate.setScaleParams(1e11, 1e10, 1e9, 1e7);
-
-  });
-
-  it("should failed when setScaleParams without access", async () => {
-    try {
-    await zooNFTDelegate.setScaleParams(1e11, 1e10, 1e9, 1e7, {from: accounts[2]});
 
       assert.fail('never go here');
     } catch (e) {
@@ -96,21 +108,19 @@ contract("ZooNFTDelegate", accounts => {
   it("should success when getBoosting", async () => { 
     await zooNFTDelegate.setNFTFactory(accounts[1]);
     await zooNFTDelegate.setNFTFactory(accounts[2]);
-    await zooNFTDelegate.setScaleParams(1e11, 1e10, 1e9, 1e7);
 
     await zooNFTDelegate.setBaseURI('https://gateway.pinata.cloud/ipfs/');
     await zooNFTDelegate.setNftURI(1, 1, 1, 'QmZ7ddzc9ZFF4dsZxfYhu26Hp3bh1Pq2koxYWkBY6vbeoN/apple.json');
     await zooNFTDelegate.mint(1, 1, 1, 1, 100, { from: accounts[1] });
     ret = await zooNFTDelegate.getBoosting(1);
-    assert.strictEqual(ret.toString(), '1012000000000');
+    assert.strictEqual(ret.toString(), '1011000000000');
     await zooNFTDelegate.setNftURI(2, 1, 1, 'QmZ7ddzc9ZFF4dsZxfYhu26Hp3bh1Pq2koxYWkBY6vbeoN/apple-pie.json');
     await zooNFTDelegate.mint(202, 2, 1, 1, 10, { from: accounts[2] });
     ret = await zooNFTDelegate.getBoosting(202);
-    assert.strictEqual(ret.toString(), '1111100000000');
+    assert.strictEqual(ret.toString(), '1060100000000');
   });
 
   it("should 1e12 when getBoosting non-token", async () => {
-    await zooNFTDelegate.setScaleParams(1e11, 1e10, 1e9, 1e7);
     ret = await zooNFTDelegate.getBoosting(1);
     assert.strictEqual(ret.toString(), '1000000000000');
   });

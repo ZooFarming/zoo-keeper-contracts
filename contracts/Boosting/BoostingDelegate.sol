@@ -26,8 +26,9 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
     function initialize(address admin) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
         _setRoleAdmin(ZOO_FARMING_ROLE, DEFAULT_ADMIN_ROLE);
-        scaleA = 3e13; // 30
-        scaleB = 1e11; // 0.1
+        minLockDays = 8 days;
+        baseBoost = 2e9;
+        increaseBoost = 4e9;
     }
 
     /// @dev Config the farming contract address
@@ -40,10 +41,11 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
         NFTAddress = _NFTAddress;
     }
 
-    function setBoostScale(uint a, uint b) public {
+    function setBoostScale(uint _minLockDays, uint _baseBoost, uint _increaseBoost) public {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        scaleA = a;
-        scaleB = b;
+        minLockDays = _minLockDays;
+        baseBoost = _baseBoost;
+        increaseBoost = _increaseBoost;
     }
 
     function deposit(uint _pid, address _user, uint _lockTime, uint _tokenId) external {
@@ -95,18 +97,27 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
     }
 
     // scale 1e12 times
-    function getMultiplier(uint _pid, address _user) external view returns (uint) {
+    function getMultiplier(uint _pid, address _user) public view returns (uint) {
         UserInfo storage info = userInfo[_pid][_user];
-        uint boosting = info.lockTime.div(1 days).mul(MULTIPLIER_SCALE).mul(scaleB).div(scaleA).add(MULTIPLIER_SCALE);
+        uint boosting = getLockTimeBoost(info.lockTime);
+        
         uint nftBoosting = MULTIPLIER_SCALE;
         if (info.tokenId != 0x0) {
             nftBoosting = IZooNFT(NFTAddress).getBoosting(info.tokenId);
         }
 
         if (boosting != 0x0) {
-            return boosting.mul(nftBoosting).div(MULTIPLIER_SCALE);
+            return boosting.add(nftBoosting).sub(MULTIPLIER_SCALE);
         }
 
         return nftBoosting;
     } 
+
+    function getLockTimeBoost(uint lockTime) public view returns (uint) {
+        uint boosting = MULTIPLIER_SCALE;
+        if (lockTime >= minLockDays) {
+            boosting = boosting.add(baseBoost).add(lockTime.sub(minLockDays).div(1 days).mul(increaseBoost));
+        }
+        return boosting;
+    }
 }

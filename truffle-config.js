@@ -25,7 +25,7 @@
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
 const WanProvider = require('wanchain-truffle-sdk').WanProvider;
-const wanProvider = new WanProvider("", "http://192.168.1.2:8545");
+const wanProvider = false && new WanProvider("", "http://192.168.1.2:8545");
 
 module.exports = {
   /**

@@ -45,23 +45,30 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
         return nftURI[level][category][item];
     }
 
-    // Use for boosting calc: boosting = (level - 1) * a + category * b + item * c + random * d;
-    // scale: 1e12
-    function setScaleParams(uint _a, uint _b, uint _c, uint _d) external {
+    function setBoostMap(uint[] memory chances, uint[] memory boosts, uint[] memory reduces) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        scaleParams.a = _a;
-        scaleParams.b = _b;
-        scaleParams.c = _c;
-        scaleParams.d = _d;
+        for (uint i=0; i<chances.length; i++) {
+            boostMap[chances[i]] = boosts[i];
+            reduceMap[chances[i]] = reduces[i];
+        }
     }
 
-    // Use for get boosting: boosting = (level - 1) * a + category * b + item * c + random * d;
+    // Use for get boosting
     // scale: 1e12
     function getBoosting(uint _tokenId) external view returns (uint) {
-        if (tokenInfo[_tokenId].level == 0) {
-            return MULTIPLIER_SCALE;
-        }
-        return MULTIPLIER_SCALE.add(tokenInfo[_tokenId].level.sub(1).mul(scaleParams.a).add(tokenInfo[_tokenId].category.mul(scaleParams.b).add(tokenInfo[_tokenId].item.mul(scaleParams.c).add(tokenInfo[_tokenId].random.mul(scaleParams.d)))));
+        uint chance = getTokenChance(_tokenId);
+        uint boosting = boostMap[chance];
+        uint random = tokenInfo[_tokenId].random;
+        uint base = MULTIPLIER_SCALE;
+        return base.add(boosting).add(random.mul(1e7));
+    }
+
+    function getLockTimeReduce(uint _tokenId) external view returns (uint) {
+        uint chance = getTokenChance(_tokenId);
+        uint reduce = reduceMap[chance];
+        uint random = tokenInfo[_tokenId].random;
+        uint base = MULTIPLIER_SCALE;
+        return base.sub(reduce).sub(random.mul(1e7));
     }
     
     function mint(uint tokenId, uint _level, uint _category, uint _item, uint _random) external {
@@ -73,5 +80,16 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
         tokenInfo[tokenId].item = _item;
         tokenInfo[tokenId].random = _random;
         _setTokenURI(tokenId, nftURI[_level][_category][_item]);
+    }
+
+    function getTokenChance(uint tokenId) public view returns (uint chance) {
+        return getLevelChance(tokenInfo[tokenId].level, tokenInfo[tokenId].category, tokenInfo[tokenId].item);
+    }
+
+    function getLevelChance(uint level, uint category, uint item) public view returns (uint chance) {
+        if (level == 0 || category == 0 || item == 0) {
+            return 0;
+        }
+        return LEVEL_CHANCE[level - 1].mul(CATEGORY_CHANCE[category - 1]).mul(ITEM_CHANCE[item - 1]).div(1e12).div(1e12);
     }
 }

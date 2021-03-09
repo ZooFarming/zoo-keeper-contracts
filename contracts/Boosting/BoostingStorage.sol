@@ -24,4 +24,9 @@ contract BoostingStorage {
     // storage all users info
     mapping (uint => mapping (address => UserInfo)) public userInfo;
 
+    uint public minLockDays;
+
+    uint public baseBoost;
+
+    uint public increaseBoost;
 }

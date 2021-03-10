@@ -70,8 +70,8 @@ module.exports = async function (deployer) {
   for (let i=1; i<=4; i++) {
     for (let c=1; c<=6; c++) {
       for (let e=1; e<=5; e++) {
-        console.log('getLevelChance', i, c, e);
         let ret = await zooNFT.getLevelChance(i, c, e, {from: admin});
+        console.log(i,c,e,ret.toString());
         pr.push(Number(Number(ret.toString())/1e10).toFixed(5));
       }
     }

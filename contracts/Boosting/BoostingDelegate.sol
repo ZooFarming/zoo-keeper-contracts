@@ -11,6 +11,9 @@ import "./BoostingStorage.sol";
 interface IZooNFT {
     // scaled 1e12
     function getBoosting(uint _tokenId) external view returns (uint);
+
+    // scaled 1e12
+    function getLockTimeReduce(uint _tokenId) external view returns (uint);
 }
 
 contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, BoostingStorage {
@@ -90,9 +93,9 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
         UserInfo storage info = userInfo[_pid][_user];
         uint nftBoosting = MULTIPLIER_SCALE;
         if (info.tokenId != 0x0) {
-            nftBoosting = IZooNFT(NFTAddress).getBoosting(info.tokenId);
+            nftBoosting = IZooNFT(NFTAddress).getLockTimeReduce(info.tokenId);
         }
-        uint endTime = info.startTime + info.lockTime.mul(MULTIPLIER_SCALE).div(nftBoosting);
+        uint endTime = info.startTime + info.lockTime.mul(nftBoosting).div(MULTIPLIER_SCALE);
         return endTime;
     }
 

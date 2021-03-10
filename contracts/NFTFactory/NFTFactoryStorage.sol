@@ -60,8 +60,9 @@ contract NFTFactoryStorage {
 
     uint public dynamicMinPrice;
     
-    // TODO
-    uint[] public LEVEL_MASK = [74, 94, 99, 100]; // 74.00%, 20.00%, 5.00%, 1.00%
-    uint[] public CATEGORY_MASK = [45, 75, 90, 97, 99, 100]; // 45%, 30%, 15%, 7%, 2%, 1%
-    uint[] public ITEM_MASK = [35, 65, 85, 95, 100]; // 35%, 30%, 20%, 10%, 5%
+    uint[] public LEVEL_MASK; // 60%, 30%, 5%, 1%
+
+    uint[] public CATEGORY_MASK; // 40%, 33%, 17%, 7%, 2%, 1%
+    
+    uint[] public ITEM_MASK; // 35%, 30%, 20%, 10%, 5%
 }

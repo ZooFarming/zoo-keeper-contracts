@@ -2,22 +2,47 @@
 pragma experimental ABIEncoderV2;
 pragma solidity 0.6.12;
 
-
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "./ZooNFTStorage.sol";
 
 // ZooNFT
-contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessControl, ZooNFTStorage {
+contract ZooNFTDelegate is
+    ERC721("ZooNFT", "ZooNFT"),
+    Initializable,
+    AccessControl,
+    ZooNFTStorage
+{
+    bytes32 public constant NFT_FACTORY_ROLE =
+        keccak256("FARMING_CONTRACT_ROLE");
 
-    bytes32 public constant NFT_FACTORY_ROLE = keccak256("FARMING_CONTRACT_ROLE");
-
-    uint public constant MULTIPLIER_SCALE = 1e12;
+    uint256 public constant MULTIPLIER_SCALE = 1e12;
 
     function initialize(address admin) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
         _setRoleAdmin(NFT_FACTORY_ROLE, DEFAULT_ADMIN_ROLE);
+
+        // 60%, 30%, 5%, 1%
+        LEVEL_CHANCE[0] = 6e11;
+        LEVEL_CHANCE[1] = 3e11;
+        LEVEL_CHANCE[2] = 5e10;
+        LEVEL_CHANCE[3] = 1e10;
+
+        // 40%, 33%, 17%, 7%, 2%, 1%
+        CATEGORY_CHANCE[0] = 4e11;
+        CATEGORY_CHANCE[1] = 33e10;
+        CATEGORY_CHANCE[2] = 17e10;
+        CATEGORY_CHANCE[3] = 7e10;
+        CATEGORY_CHANCE[4] = 2e10;
+        CATEGORY_CHANCE[5] = 1e10;
+
+        // 35%, 30%, 20%, 10%, 5%
+        ITEM_CHANCE[0] = 35e10;
+        ITEM_CHANCE[1] = 3e11;
+        ITEM_CHANCE[2] = 2e11;
+        ITEM_CHANCE[3] = 1e11;
+        ITEM_CHANCE[4] = 5e10;
     }
 
     function setNFTFactory(address _nftFactory) external {
@@ -29,25 +54,43 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
         _setBaseURI(_baseURI);
     }
 
-    function setNftURI(uint level, uint category, uint item, string memory URI) external {
+    function setNftURI(
+        uint256 level,
+        uint256 category,
+        uint256 item,
+        string memory URI
+    ) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         nftURI[level][category][item] = URI;
     }
 
-    function setMultiNftURI(uint[] memory levels, uint[] memory categorys, uint[] memory items, string[] memory URIs) external {
+    function setMultiNftURI(
+        uint256[] memory levels,
+        uint256[] memory categorys,
+        uint256[] memory items,
+        string[] memory URIs
+    ) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        for (uint i=0; i<levels.length; i++) {
+        for (uint256 i = 0; i < levels.length; i++) {
             nftURI[levels[i]][categorys[i]][items[i]] = URIs[i];
         }
     }
 
-    function getNftURI(uint level, uint category, uint item) public view returns (string memory) {
+    function getNftURI(
+        uint256 level,
+        uint256 category,
+        uint256 item
+    ) public view returns (string memory) {
         return nftURI[level][category][item];
     }
 
-    function setBoostMap(uint[] memory chances, uint[] memory boosts, uint[] memory reduces) external {
+    function setBoostMap(
+        uint256[] memory chances,
+        uint256[] memory boosts,
+        uint256[] memory reduces
+    ) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        for (uint i=0; i<chances.length; i++) {
+        for (uint256 i = 0; i < chances.length; i++) {
             boostMap[chances[i]] = boosts[i];
             reduceMap[chances[i]] = reduces[i];
         }
@@ -55,26 +98,39 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
 
     // Use for get boosting
     // scale: 1e12
-    function getBoosting(uint _tokenId) external view returns (uint) {
-        uint chance = getTokenChance(_tokenId);
-        uint boosting = boostMap[chance];
-        uint random = tokenInfo[_tokenId].random;
-        uint base = MULTIPLIER_SCALE;
+    function getBoosting(uint256 _tokenId) external view returns (uint256) {
+        uint256 chance = getTokenChance(_tokenId);
+        uint256 boosting = boostMap[chance];
+        uint256 random = tokenInfo[_tokenId].random;
+        uint256 base = MULTIPLIER_SCALE;
         return base.add(boosting).add(random.mul(1e7));
     }
 
-    function getLockTimeReduce(uint _tokenId) external view returns (uint) {
-        uint chance = getTokenChance(_tokenId);
-        uint reduce = reduceMap[chance];
-        uint random = tokenInfo[_tokenId].random;
-        uint base = MULTIPLIER_SCALE;
+    function getLockTimeReduce(uint256 _tokenId)
+        external
+        view
+        returns (uint256)
+    {
+        uint256 chance = getTokenChance(_tokenId);
+        uint256 reduce = reduceMap[chance];
+        uint256 random = tokenInfo[_tokenId].random;
+        uint256 base = MULTIPLIER_SCALE;
         return base.sub(reduce).sub(random.mul(1e7));
     }
-    
-    function mint(uint tokenId, uint _level, uint _category, uint _item, uint _random) external {
+
+    function mint(
+        uint256 tokenId,
+        uint256 _level,
+        uint256 _category,
+        uint256 _item,
+        uint256 _random
+    ) external {
         require(hasRole(NFT_FACTORY_ROLE, msg.sender));
         _safeMint(msg.sender, tokenId);
-        require(_level > 0 && _level < 5, "level must larger than 0, lesser than 5");
+        require(
+            _level > 0 && _level < 5,
+            "level must larger than 0, lesser than 5"
+        );
         tokenInfo[tokenId].level = _level;
         tokenInfo[tokenId].category = _category;
         tokenInfo[tokenId].item = _item;
@@ -82,14 +138,32 @@ contract ZooNFTDelegate is ERC721("ZooNFT", "ZooNFT"), Initializable, AccessCont
         _setTokenURI(tokenId, nftURI[_level][_category][_item]);
     }
 
-    function getTokenChance(uint tokenId) public view returns (uint chance) {
-        return getLevelChance(tokenInfo[tokenId].level, tokenInfo[tokenId].category, tokenInfo[tokenId].item);
+    function getTokenChance(uint256 tokenId)
+        public
+        view
+        returns (uint256 chance)
+    {
+        return
+            getLevelChance(
+                tokenInfo[tokenId].level,
+                tokenInfo[tokenId].category,
+                tokenInfo[tokenId].item
+            );
     }
 
-    function getLevelChance(uint level, uint category, uint item) public view returns (uint chance) {
+    function getLevelChance(
+        uint256 level,
+        uint256 category,
+        uint256 item
+    ) public view returns (uint256 chance) {
         if (level == 0 || category == 0 || item == 0) {
             return 0;
         }
-        return LEVEL_CHANCE[level - 1].mul(CATEGORY_CHANCE[category - 1]).mul(ITEM_CHANCE[item - 1]).div(1e12).div(1e12);
+        return
+            LEVEL_CHANCE[level - 1]
+                .mul(CATEGORY_CHANCE[category - 1])
+                .mul(ITEM_CHANCE[item - 1])
+                .div(1e12)
+                .div(1e12);
     }
 }

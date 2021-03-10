@@ -62,6 +62,27 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         stakePlan[2].priceMul = 1;
         stakePlan[2].priceDiv = 2;
         stakePlan[2].lockTime = 30 days;
+
+        // 60%, 30%, 5%, 1%
+        LEVEL_MASK.push(60);
+        LEVEL_MASK.push(90);
+        LEVEL_MASK.push(95);
+        LEVEL_MASK.push(100);
+
+        // 40%, 33%, 17%, 7%, 2%, 1%
+        CATEGORY_MASK.push(40);
+        CATEGORY_MASK.push(73);
+        CATEGORY_MASK.push(90);
+        CATEGORY_MASK.push(97);
+        CATEGORY_MASK.push(99);
+        CATEGORY_MASK.push(100);
+
+        // 35%, 30%, 20%, 10%, 5%
+        ITEM_MASK.push(35);
+        ITEM_MASK.push(65);
+        ITEM_MASK.push(85);
+        ITEM_MASK.push(95);
+        ITEM_MASK.push(100);
     }
 
     function configTokenAddress(address _zooToken, address _zooNFT) external {

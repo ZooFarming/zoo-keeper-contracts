@@ -30,9 +30,12 @@ contract ZooNFTStorage {
     mapping(uint => mapping(uint => mapping(uint => string))) public nftURI;
 
     // chance scaled 1e12
-    uint[] public LEVEL_CHANCE = [6e11, 3e11, 5e10, 1e10];             // 60%, 30%, 5%, 1%
-    uint[] public CATEGORY_CHANCE = [4e11, 33e10, 17e10, 7e10, 2e10, 1e10];  // 40%, 33%, 17%, 7%, 2%, 1%
-    uint[] public ITEM_CHANCE = [35e10, 3e11, 2e11, 1e11, 5e10];          // 35%, 30%, 20%, 10%, 5%
+    // level => chance
+    mapping(uint => uint) public LEVEL_CHANCE;         // 60%, 30%, 5%, 1%
+
+    mapping(uint => uint) public CATEGORY_CHANCE;      // 40%, 33%, 17%, 7%, 2%, 1%
+
+    mapping(uint => uint) public ITEM_CHANCE;          // 35%, 30%, 20%, 10%, 5%
 
     // chance => boost
     mapping(uint => uint) public boostMap;

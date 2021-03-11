@@ -48,14 +48,41 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
     await nft.initialize(dev);
     await nft.setNFTFactory(alice, {from: dev});
     await nft.setNFTFactory(bob, {from: dev});
+    // ------
+    let pr =[];
+    for (let i=1; i<=4; i++) {
+      for (let c=1; c<=6; c++) {
+        for (let e=1; e<=5; e++) {
+          let ret = await nft.getLevelChance(i, c, e);
+          pr.push(Number(Number(ret.toString())/1e10).toFixed(5));
+        }
+      }
+    }
+    
+    function unique (arr) {
+      return Array.from(new Set(arr))
+    }
 
-    await nft.setScaleParams(1e11, 1e10, 1e9, 1e7, {from: dev});
+    let pn = unique(pr.sort().reverse());
+
+    let chances = [];
+    let boosts = [];
+    let reduces = [];
+    for(let i=0; i < pn.length; i++) {
+      chances.push('0x' + Number((pn[i]*1e10).toFixed(0)).toString(16));
+      boosts.push('0x' + Number(((i+1)*1e10).toFixed(0)).toString(16));
+      reduces.push('0x' + Number((1e10 + i*2e9).toFixed(0)).toString(16));
+    }
+
+    await nft.setBoostMap(chances, boosts, reduces, {from: dev});
+    // ------
+
     await nft.setBaseURI('https://gateway.pinata.cloud/ipfs/', {from: dev});
     await nft.setNftURI(1, 1, 1, 'QmZ7ddzc9ZFF4dsZxfYhu26Hp3bh1Pq2koxYWkBY6vbeoN/apple.json', {from: dev});
     await nft.setNftURI(2, 1, 1, 'QmZ7ddzc9ZFF4dsZxfYhu26Hp3bh1Pq2koxYWkBY6vbeoN/apple.json', {from: dev});
     await nft.setNftURI(3, 1, 1, 'QmZ7ddzc9ZFF4dsZxfYhu26Hp3bh1Pq2koxYWkBY6vbeoN/apple.json', {from: dev});
     await nft.mint(1, 1, 1, 1, 100, {from: alice});
-    await nft.mint(2, 2, 1, 1, 100, {from: alice});
+    await nft.mint(2, 2, 2, 1, 100, {from: alice});
     await nft.mint(3, 3, 1, 1, 100, {from: bob});
 
     wasp = await WaspToken.new();
@@ -86,7 +113,7 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
 
     await boosting.setFarmingAddr(farming.address);
     await boosting.setNFTAddress(nft.address);
-    await boosting.setBoostScale('30000000000000', '100000000000');
+    await boosting.setBoostScale(8 * 3600 * 24, '2000000000', '4000000000');
     await nft.setApprovalForAll(boosting.address, true, { from: alice });
     await nft.setApprovalForAll(boosting.address, true, { from: bob });
 
@@ -313,9 +340,9 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
 
   it("should success when deposit amount with lock-time", async ()=>{
     await farming.add(100, lp1.address, true, 0, false);
-    await farming.deposit(0, 100, 3600*24*30, 0, {from: bob});
+    await farming.deposit(0, 100, 3600*24*33, 0, {from: bob});
     ret = await boosting.userInfo(0, bob);
-    assert.strictEqual(ret.lockTime.toString(), '2592000');
+    assert.strictEqual(ret.lockTime.toString(), '2851200');
     await time.advanceBlock();
     ret = await farming.pendingZoo(0, bob);
     assert.strictEqual(ret.toString(), '11');
@@ -340,7 +367,7 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
     await time.advanceBlock();
     ret = await farming.pendingZoo(0, bob);
     assert.strictEqual(ret.toString(), '10');
-    await farming.deposit(0, 0, 3600*24*30, 0, {from: bob});
+    await farming.deposit(0, 0, 3600*24*33, 0, {from: bob});
     await time.advanceBlock();
     ret = await farming.pendingZoo(0, bob);
     assert.strictEqual(ret.toString(), '11');
@@ -348,7 +375,7 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
 
   it("should success when withdraw 0 with lock time", async ()=>{
     await farming.add(100, lp1.address, true, 0, false);
-    await farming.deposit(0, 100, 3600*24*30, 0, {from: bob});
+    await farming.deposit(0, 100, 3600*24*33, 0, {from: bob});
     await time.advanceBlock();
     ret = await farming.pendingZoo(0, bob);
     assert.strictEqual(ret.toString(), '11');
@@ -360,7 +387,7 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
 
   it("should success when withdraw amount with lock time 1", async ()=>{
     await farming.add(100, lp1.address, true, 0, false);
-    await farming.deposit(0, 100, 3600*24*30, 0, {from: bob});
+    await farming.deposit(0, 100, 3600*24*33, 0, {from: bob});
     await time.advanceBlock();
     ret = await farming.pendingZoo(0, bob);
     assert.strictEqual(ret.toString(), '11');
@@ -391,7 +418,7 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
   it("should success when withdraw amount no-lock to lock 1", async ()=>{
     await farming.add(100, lp1.address, true, 0, false);
     await farming.deposit(0, 100, 0, 0, {from: bob});
-    await farming.deposit(0, 100, 3600*24*30, 0, {from: bob});
+    await farming.deposit(0, 100, 3600*24*33, 0, {from: bob});
     await time.advanceBlock();
     ret = await farming.pendingZoo(0, bob);
     assert.strictEqual(ret.toString(), '11');
@@ -499,7 +526,7 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
   it("deposit amount with nft,lock-time,dual farming", async ()=>{
     await farming.add(100, lp1.address, true, 0, true);
     assert.strictEqual((await lp1.balanceOf(alice)).toString(), '9000000');
-    await farming.deposit(0, 1000, 3600*24*30, 2, {from: alice});
+    await farming.deposit(0, 1000, 3600*24*33, 2, {from: alice});
     assert.strictEqual((await nft.balanceOf(alice)).toString(), '1');
     await time.advanceBlock();
     ret = await farming.pendingZoo(0, alice);
@@ -517,7 +544,7 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
     assert.strictEqual((await nft.balanceOf(alice)).toString(), '1');
     await time.advanceBlock();
     ret = await farming.pendingZoo(0, alice);
-    assert.strictEqual(ret.toString(), '12');
+    assert.strictEqual(ret.toString(), '11');
     ret = await farming.pendingWasp(0, alice);
     assert.strictEqual(ret.toString(), '5');
     assert.strictEqual((await lp1.balanceOf(alice)).toString(), '8999000');
@@ -526,7 +553,7 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
     assert.strictEqual(ret.toString(), '0');
     ret = await farming.pendingWasp(0, alice);
     assert.strictEqual(ret.toString(), '0');
-    assert.strictEqual((await zoo.balanceOf(alice)).toString(), '1000024');
+    assert.strictEqual((await zoo.balanceOf(alice)).toString(), '1000023');
     assert.strictEqual((await wasp.balanceOf(alice)).toString(), '10');
   });
 
@@ -564,7 +591,7 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
     assert.strictEqual((await nft.balanceOf(alice)).toString(), '1');
     await time.advanceBlock();
     ret = await farming.pendingZoo(0, alice);
-    assert.strictEqual(ret.toString(), '12');
+    assert.strictEqual(ret.toString(), '11');
     ret = await farming.pendingWasp(0, alice);
     assert.strictEqual(ret.toString(), '5');
     assert.strictEqual((await lp1.balanceOf(alice)).toString(), '8999000');
@@ -573,7 +600,7 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
     assert.strictEqual(ret.toString(), '0');
     ret = await farming.pendingWasp(0, alice);
     assert.strictEqual(ret.toString(), '0');
-    assert.strictEqual((await zoo.balanceOf(alice)).toString(), '1000024');
+    assert.strictEqual((await zoo.balanceOf(alice)).toString(), '1000023');
     assert.strictEqual((await wasp.balanceOf(alice)).toString(), '10');
     // console.log((await zoo.balanceOf(dev)).toString());
     assert.strictEqual((await zoo.balanceOf(dev)).toString(), '1000005');

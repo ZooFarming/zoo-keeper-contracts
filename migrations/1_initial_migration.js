@@ -14,11 +14,12 @@ module.exports = async function (deployer) {
   }
 
   let deployerAddr = deployer.provider.addresses[0];
+  console.log('deployerAddr', deployerAddr);
   let proxyAdmin = '0x5560af0f46d00fcea88627a9df7a4798b1b10961';
   let admin = '0x4cf0a877e906dead748a41ae7da8c220e4247d9e';
   let wanswapFarmingAddr = '0x01ecaa58733a9232ae5f1d2f74c643f2f8b3bb91';
   let waspTokenAddr = '0x830053dabd78b4ef0ab0fec936f8a1135b68da6f';
-  let dividerAddr = '0xa658e95521ffa7537365cc1b01af3b174d873669';
+  let dividerAddr = '0x3019ed21591bee1e450874437018f39cd26a980b';
 
   await deployer.deploy(NFTFactoryDelegate);
   await deployer.deploy(ZooNFTDelegate);

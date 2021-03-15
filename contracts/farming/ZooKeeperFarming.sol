@@ -331,7 +331,7 @@ contract ZooKeeperFarming is Ownable {
             uint256 waspPending = userAmountOld.mul(pool.accWaspPerShare).div(1e12).sub(user.waspRewardDebt);
             safeWaspTransfer(msg.sender, waspPending);
             IWaspFarming(wanswapFarming).deposit(pool.waspPid, _amount);
-            user.waspRewardDebt = user.amount.mul(pool.accZooPerShare).div(1e12);
+            user.waspRewardDebt = user.amount.mul(pool.accWaspPerShare).div(1e12);
         }
 
         emit Deposit(msg.sender, _pid, _amount);

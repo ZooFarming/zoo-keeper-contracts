@@ -6,6 +6,7 @@ const BoostingDelegate = artifacts.require('BoostingDelegate');
 const ZooToken = artifacts.require('ZooToken');
 const ZooKeeperFarming = artifacts.require('ZooKeeperFarming');
 const MarketplaceDelegate = artifacts.require('MarketplaceDelegate');
+const nftConfig = require('./nft_config.json');
 
 module.exports = async function (deployer) {
   if (deployer.network === 'development') {
@@ -93,24 +94,44 @@ module.exports = async function (deployer) {
     reduces.push('0x' + Number((1e10 + i*2e9).toFixed(0)).toString(16));
   }
 
+  console.log('ready to config NFT boost...');
   await zooNFT.setBoostMap(chances, boosts, reduces);
   await zooNFT.setNFTFactory(nftFactory.address);
   await zooNFT.setNFTFactory(admin);
-  //--------------------------
 
+  console.log('ready to config NFT URL...');
+  await zooNFT.setBaseURI('https://gateway.pinata.cloud/ipfs/');
+  await zooNFT.setMultiNftURI(nftConfig.levels.slice(0,60), nftConfig.categorys.slice(0,60), nftConfig.items.slice(0,60), nftConfig.URLs.slice(0,60));
+  await zooNFT.setMultiNftURI(nftConfig.levels.slice(-60), nftConfig.categorys.slice(-60), nftConfig.items.slice(-60), nftConfig.URLs.slice(-60));
+  console.log('NFT config finished.');
+  //--------------------------
   // init boosting
   await boosting.setFarmingAddr(zooKeeperFarming.address);
   await boosting.setNFTAddress(zooNFT.address);
 
 
   await nftFactory.grantRole('0x00', admin);
-  await nftFactory.renounceRole('0x00', deployerAddr);
+  if (deployerAddr.toLowerCase() !== admin) {
+    await nftFactory.renounceRole('0x00', deployerAddr);
+  }
+
   await zooNFT.grantRole('0x00', admin);
-  await zooNFT.renounceRole('0x00', deployerAddr);
+
+  if (deployerAddr.toLowerCase() !== admin) {
+    await zooNFT.renounceRole('0x00', deployerAddr);
+  }
+
   await boosting.grantRole('0x00', admin);
-  await boosting.renounceRole('0x00', deployerAddr);
+
+  if (deployerAddr.toLowerCase() !== admin) {
+    await boosting.renounceRole('0x00', deployerAddr);
+  }
+
   await marketplace.grantRole('0x00', admin);
-  await marketplace.renounceRole('0x00', deployerAddr);
+
+  if (deployerAddr.toLowerCase() !== admin) {
+    await marketplace.renounceRole('0x00', deployerAddr);
+  }
 
   console.log('-------------------------------');
   console.log('nftFactory:', nftFactory.address);

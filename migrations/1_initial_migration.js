@@ -97,7 +97,6 @@ module.exports = async function (deployer) {
   await zooNFT.setNFTFactory(admin);
 
   console.log('ready to config NFT URL...');
-  await zooNFT.setBaseURI('https://gateway.pinata.cloud/ipfs/');
   await zooNFT.setMultiNftURI(nftConfig.levels.slice(0,60), nftConfig.categorys.slice(0,60), nftConfig.items.slice(0,60), nftConfig.URLs.slice(0,60));
   await zooNFT.setMultiNftURI(nftConfig.levels.slice(-60), nftConfig.categorys.slice(-60), nftConfig.items.slice(-60), nftConfig.URLs.slice(-60));
   console.log('NFT config finished.');

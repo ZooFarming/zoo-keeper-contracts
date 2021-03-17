@@ -1,7 +1,7 @@
 // const Migrations = artifacts.require("Migrations");
 const NFTFactoryDelegate = artifacts.require("NFTFactoryDelegate");
 const ZooKeeperProxy = artifacts.require("ZooKeeperProxy");
-const ZooNFTDelegate = artifacts.require('ZooNFTDelegate');
+const ZooNFT = artifacts.require('ZooNFT');
 const BoostingDelegate = artifacts.require('BoostingDelegate');
 const ZooToken = artifacts.require('ZooToken');
 const ZooKeeperFarming = artifacts.require('ZooKeeperFarming');
@@ -23,20 +23,17 @@ module.exports = async function (deployer) {
   let dividerAddr = '0x3019ed21591bee1e450874437018f39cd26a980b';
 
   await deployer.deploy(NFTFactoryDelegate);
-  await deployer.deploy(ZooNFTDelegate);
+  await deployer.deploy(ZooNFT);
   await deployer.deploy(BoostingDelegate);
   await deployer.deploy(MarketplaceDelegate);
   
   let nftFactoryDelegate = await NFTFactoryDelegate.deployed();
-  let zooNFTDelegate = await ZooNFTDelegate.deployed()
+  let zooNFT = await ZooNFT.deployed()
   let boostingDelegate = await BoostingDelegate.deployed();
   let marketplaceDelegate = await MarketplaceDelegate.deployed();
 
   await deployer.deploy(ZooKeeperProxy, nftFactoryDelegate.address, proxyAdmin, '0x');
   let nftFactory = await NFTFactoryDelegate.at((await ZooKeeperProxy.deployed()).address);
-
-  await deployer.deploy(ZooKeeperProxy, zooNFTDelegate.address, proxyAdmin, '0x');
-  let zooNFT = await ZooNFTDelegate.at((await ZooKeeperProxy.deployed()).address);
 
   await deployer.deploy(ZooKeeperProxy, boostingDelegate.address, proxyAdmin, '0x');
   let boosting = await BoostingDelegate.at((await ZooKeeperProxy.deployed()).address);

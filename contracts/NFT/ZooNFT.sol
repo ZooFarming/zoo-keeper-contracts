@@ -52,6 +52,9 @@ contract ZooNFT is
     // chance => lockTime reduce
     mapping(uint => uint) public reduceMap;
 
+    // NFT item's total supply
+    mapping(uint => mapping(uint => mapping(uint => uint))) public itemSupply;
+
     bytes32 public constant NFT_FACTORY_ROLE =
         keccak256("FARMING_CONTRACT_ROLE");
 
@@ -174,6 +177,7 @@ contract ZooNFT is
         tokenInfo[tokenId].item = _item;
         tokenInfo[tokenId].random = _random;
         _setTokenURI(tokenId, nftURI[_level][_category][_item]);
+        itemSupply[_level][_category][_item]++;
     }
 
     function getTokenChance(uint256 tokenId)

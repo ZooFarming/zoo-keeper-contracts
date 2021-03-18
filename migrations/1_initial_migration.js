@@ -21,6 +21,7 @@ module.exports = async function (deployer) {
   let wanswapFarmingAddr = '0x01ecaa58733a9232ae5f1d2f74c643f2f8b3bb91';
   let waspTokenAddr = '0x830053dabd78b4ef0ab0fec936f8a1135b68da6f';
   let dividerAddr = '0x3019ed21591bee1e450874437018f39cd26a980b';
+  let faucet = '0xcC74ca14e7648F59aaf5c11d646C7265a9719757';
 
   await deployer.deploy(NFTFactoryDelegate);
   await deployer.deploy(ZooNFT);
@@ -43,6 +44,9 @@ module.exports = async function (deployer) {
 
   await deployer.deploy(ZooToken);
   let zooToken = await ZooToken.deployed();
+
+  // TODO: REMOVE IN MAINNET
+  await zooToken.mint(faucet, '0x52b7d2dcc80cd400000000');
 
   await deployer.deploy(ZooKeeperFarming,
     zooToken.address,
@@ -143,5 +147,6 @@ module.exports = async function (deployer) {
   console.log('wanswapFarmingAddr:', wanswapFarmingAddr);
   console.log('dividerAddr:', dividerAddr);
   console.log('deployerAddr:', deployerAddr);
+  console.log('testnet faucet:', faucet);
 
 };

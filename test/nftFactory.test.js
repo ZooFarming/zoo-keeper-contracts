@@ -1,6 +1,6 @@
 const NFTFactoryDelegate = artifacts.require('NFTFactoryDelegate');
 const ZooToken = artifacts.require('ZooToken');
-const ZooNFTDelegate = artifacts.require('ZooNFTDelegate');
+const ZooNFT = artifacts.require('ZooNFT');
 const assert = require('assert');
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const sleep = require('ko-sleep');
@@ -19,7 +19,7 @@ contract("NFTFactoryDelegate", ([alice, lucy, jack, tom, molin, dev]) => {
     zoo.mint(molin, '1000000');
     zoo.mint(dev, '100');
 
-    nft = await ZooNFTDelegate.new();
+    nft = await ZooNFT.new();
     await nft.initialize(dev);
     nftFactory = await NFTFactoryDelegate.new();
     await nftFactory.initialize(dev, zoo.address, nft.address);
@@ -54,6 +54,20 @@ contract("NFTFactoryDelegate", ([alice, lucy, jack, tom, molin, dev]) => {
     assert.ok(total >= 1, "nft level error");
 
     // console.log(total, Number(await nft.balanceOf(alice)));
+  });
+
+  it("should success when buy silver chest chance verify", async () => { 
+    let ret;
+    console.log('nft count:', Number(await nft.balanceOf(alice)));
+
+    for (let i=0; i<100; i++) {
+      ret = await nftFactory.buySilverChest({from: alice});
+    }
+
+    console.log('nft count:', Number(await nft.balanceOf(alice)));
+
+    assert.ok(Number(await nft.balanceOf(alice)) >= 1);
+
   });
 
   it("should failed when buy silver chest without enough zoo", async () => {

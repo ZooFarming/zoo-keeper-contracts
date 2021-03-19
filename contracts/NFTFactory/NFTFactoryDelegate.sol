@@ -240,6 +240,9 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         stakeInfo[msg.sender][_type].lockTime = stakePlan[_type].lockTime;
 
         IERC20(zooToken).transferFrom(msg.sender, address(this), stakePrice);
+
+        stakedAmount[_type] = stakedAmount[_type].add(stakePrice);
+
         emit ZooStake(msg.sender, stakePrice, _type);
     }
 
@@ -274,6 +277,9 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         emit MintNFT(level, category, item, random, tokenId);
 
         IERC20(zooToken).safeTransfer(msg.sender, amount);
+
+        stakedAmount[_type] = stakedAmount[_type].sub(amount);
+
         emit ZooClaim(msg.sender, amount, _type, tokenId);
     }
 

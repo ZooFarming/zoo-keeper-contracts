@@ -65,4 +65,7 @@ contract NFTFactoryStorage {
     uint[] public CATEGORY_MASK; // 40%, 33%, 17%, 7%, 2%, 1%
     
     uint[] public ITEM_MASK; // 35%, 30%, 20%, 10%, 5%
+
+    // planId => stakeZooAmount
+    mapping(uint => uint) public stakedAmount;
 }

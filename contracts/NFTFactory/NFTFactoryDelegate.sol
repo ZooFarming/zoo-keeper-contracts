@@ -18,13 +18,14 @@ interface IZooToken {
 interface IZooNFTMint {
     function mint(uint tokenId, uint _level, uint _category, uint _item, uint _random) external;
     function totalSupply() external view returns (uint);
+    function itemSupply(uint _level, uint _category, uint _item) external view returns (uint);
 }
 
 // NFTFactory
 contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFactoryStorage {
     using SafeERC20 for IERC20;
 
-    event MintNFT(uint indexed level, uint indexed category, uint indexed item, uint random, uint tokenId);
+    event MintNFT(uint indexed level, uint indexed category, uint indexed item, uint random, uint tokenId, uint itemSupply);
 
     event GoldenBuy(address indexed user, uint price);
     
@@ -149,7 +150,9 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
 
         IZooNFTMint(zooNFT).mint(tokenId, level, category, item, random);
         IERC721(zooNFT).safeTransferFrom(address(this), msg.sender, tokenId);
-        emit MintNFT(level, category, item, random, tokenId);
+
+        uint itemSupply = IZooNFTMint(zooNFT).itemSupply(level, category, item);
+        emit MintNFT(level, category, item, random, tokenId, itemSupply);
         emit GoldenBuy(msg.sender, currentPrice);
     }
 
@@ -176,7 +179,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
 
         if (!success) {
             emptyTimes[msg.sender]++;
-            emit MintNFT(0, 0, 0, 0, 0);
+            emit MintNFT(0, 0, 0, 0, 0, 0);
             return;
         }
 
@@ -191,7 +194,8 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
 
         IZooNFTMint(zooNFT).mint(tokenId, level, category, item, random);
         IERC721(zooNFT).safeTransferFrom(address(this), msg.sender, tokenId);
-        emit MintNFT(level, category, item, random, tokenId);
+        uint itemSupply = IZooNFTMint(zooNFT).itemSupply(level, category, item);
+        emit MintNFT(level, category, item, random, tokenId, itemSupply);
     }
 
     function queryGoldenPrice() public view returns (uint) {
@@ -274,7 +278,9 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
 
         IZooNFTMint(zooNFT).mint(tokenId, level, category, item, random);
         IERC721(zooNFT).safeTransferFrom(address(this), msg.sender, tokenId);
-        emit MintNFT(level, category, item, random, tokenId);
+        
+        uint itemSupply = IZooNFTMint(zooNFT).itemSupply(level, category, item);
+        emit MintNFT(level, category, item, random, tokenId, itemSupply);
 
         IERC20(zooToken).safeTransfer(msg.sender, amount);
 

@@ -13,7 +13,7 @@ import "./MarketplaceStorage.sol";
 contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage {
     using SafeERC20 for IERC20;
 
-    event CreateOrder(address indexed _nftContract, uint indexed _tokenId, address indexed _token, uint _price, uint _expiration);
+    event CreateOrder(address indexed _nftContract, uint indexed _tokenId, address indexed _token, uint _price, uint _expiration, uint _orderId);
 
     event CancelOrder(uint indexed _tokenId);
 
@@ -61,7 +61,7 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         orders[orderId].createTime = block.timestamp;
         orderIds.add(orderId);
 
-        emit CreateOrder(_nftContract, _tokenId, _token, _price, _expiration);
+        emit CreateOrder(_nftContract, _tokenId, _token, _price, _expiration, orderId);
     }
 
     /// @param _nftContract is the NFT contract address

@@ -134,8 +134,11 @@ contract ZooKeeperFarming is Ownable {
     }
 
     function setWaspPid(uint _pid, uint _waspPid, bool _dualFarmingEnable) public onlyOwner {
-        require(poolInfo[_pid].waspPid == 0, "only support set once");
-        poolInfo[_pid].waspPid = _waspPid;
+        // only support set once"
+        if (poolInfo[_pid].waspPid == 0) {
+            poolInfo[_pid].waspPid = _waspPid;
+        }
+        
         poolInfo[_pid].dualFarmingEnable = _dualFarmingEnable;
         poolInfo[_pid].accWaspPerShare = 0;
     }

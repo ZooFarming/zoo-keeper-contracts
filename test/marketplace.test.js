@@ -1,4 +1,4 @@
-const ZooNFTDelegate = artifacts.require('ZooNFTDelegate');
+const ZooNFT = artifacts.require('ZooNFT');
 const MarketplaceDelegate = artifacts.require('MarketplaceDelegate');
 const ZooToken = artifacts.require('ZooToken');
 
@@ -19,7 +19,7 @@ contract("MarketplaceDelegate", ([alice, lucy, jack, tom, molin, dev]) => {
       await zoo.mint(molin, '1000000');
       await zoo.mint(dev, '100');
   
-      nft = await ZooNFTDelegate.new();
+      nft = await ZooNFT.new();
       await nft.initialize(dev);
       await nft.setNFTFactory(alice, {from: dev});
       await nft.setBaseURI('https://gateway.pinata.cloud/ipfs/', {from: dev});

@@ -3,7 +3,7 @@ const ZooToken = artifacts.require('ZooToken');
 const ZooKeeperFarming = artifacts.require('ZooKeeperFarming');
 const MockERC20 = artifacts.require('MockERC20');
 const BoostingDelegate = artifacts.require('BoostingDelegate');
-const ZooNFTDelegate = artifacts.require('ZooNFTDelegate');
+const ZooNFT = artifacts.require('ZooNFT');
 const WaspToken = artifacts.require('WaspToken');
 const WanSwapFarm = artifacts.require('WanSwapFarm');
 const { web3 } = require('@openzeppelin/test-helpers/src/setup');
@@ -44,7 +44,7 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
     await boosting.initialize(alice);
     
 
-    nft = await ZooNFTDelegate.new();
+    nft = await ZooNFT.new();
     await nft.initialize(dev);
     await nft.setNFTFactory(alice, {from: dev});
     await nft.setNFTFactory(bob, {from: dev});
@@ -604,6 +604,42 @@ contract('ZooKeeperFarming', ([alice, bob, carol, dev, minter]) => {
     assert.strictEqual((await wasp.balanceOf(alice)).toString(), '10');
     // console.log((await zoo.balanceOf(dev)).toString());
     assert.strictEqual((await zoo.balanceOf(dev)).toString(), '1000005');
+  });
+
+  it("should success when owner emergencyWithdraw", async ()=>{
+    await farming.add(100, lp1.address, true, 0, true);
+    assert.strictEqual((await lp1.balanceOf(alice)).toString(), '9000000');
+    await farming.deposit(0, 1000, 3600*24*33, 2, {from: alice});
+    assert.strictEqual((await nft.balanceOf(alice)).toString(), '1');
+    await time.advanceBlock();
+    ret = await farming.pendingZoo(0, alice);
+    assert.strictEqual(ret.toString(), '12');
+    ret = await farming.pendingWasp(0, alice);
+    assert.strictEqual((await lp1.balanceOf(farming.address)).toString(), '0');
+    await farming.emergencyWithdrawEnable(0);
+    assert.strictEqual((await lp1.balanceOf(farming.address)).toString(), '1000');
+    await farming.emergencyWithdraw(0, {from: alice});
+    assert.strictEqual((await lp1.balanceOf(farming.address)).toString(), '0');
+    assert.strictEqual((await lp1.balanceOf(alice)).toString(), '9000000');
+  });
+
+  it("should failed when user emergencyWithdraw without access", async ()=>{
+    await farming.add(100, lp1.address, true, 0, true);
+    assert.strictEqual((await lp1.balanceOf(alice)).toString(), '9000000');
+    await farming.deposit(0, 1000, 3600*24*33, 2, {from: alice});
+    assert.strictEqual((await nft.balanceOf(alice)).toString(), '1');
+    await time.advanceBlock();
+    ret = await farming.pendingZoo(0, alice);
+    assert.strictEqual(ret.toString(), '12');
+    ret = await farming.pendingWasp(0, alice);
+    assert.strictEqual((await lp1.balanceOf(farming.address)).toString(), '0');
+
+    try {
+      await farming.emergencyWithdraw(0, {from: alice});
+      assert.fail('never go here');
+    } catch (e) {
+      assert.ok(e.message.match(/revert/));
+    }
   });
 
 });

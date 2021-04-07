@@ -3,7 +3,7 @@ const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const ZooToken = artifacts.require('ZooToken');
 const ZooKeeperFarming = artifacts.require('ZooKeeperFarming');
 const MockERC20 = artifacts.require('MockERC20');
-const ZooNFTDelegate = artifacts.require('ZooNFTDelegate');
+const ZooNFT = artifacts.require('ZooNFT');
 const BoostingDelegate = artifacts.require('BoostingDelegate');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -20,7 +20,7 @@ contract("BoostingDelegate", ([alice, bob, carol, dev, minter]) => {
 
   beforeEach(async () => {
     zoo = await ZooToken.new();
-    nft = await ZooNFTDelegate.new();
+    nft = await ZooNFT.new();
     await nft.initialize(alice);
     await nft.setBaseURI('https://gateway.pinata.cloud/ipfs/');
     await nft.setNftURI(1, 1, 1, 'QmZ7ddzc9ZFF4dsZxfYhu26Hp3bh1Pq2koxYWkBY6vbeoN/apple.json');

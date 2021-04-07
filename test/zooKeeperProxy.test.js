@@ -1,5 +1,5 @@
 const ZooKeeperProxy = artifacts.require('ZooKeeperProxy');
-const ZooNFTDelegate = artifacts.require('ZooNFTDelegate');
+const ZooNFT = artifacts.require('ZooNFT');
 
 const assert = require('assert');
 
@@ -9,8 +9,8 @@ contract("ZooKeeperProxy", accounts => {
   let zooNFTDelegate2;
 
   beforeEach(async ()=>{
-    zooNFTDelegate = await ZooNFTDelegate.new();
-    zooNFTDelegate2 = await ZooNFTDelegate.new();
+    zooNFTDelegate = await ZooNFT.new();
+    zooNFTDelegate2 = await ZooNFT.new();
     zooNFTProxy = await ZooKeeperProxy.new(zooNFTDelegate.address, accounts[1], '0x');
   });
 
@@ -44,7 +44,7 @@ contract("ZooKeeperProxy", accounts => {
   });
 
   it("should success when call to delegate function", async () => {
-    const zoo = await ZooNFTDelegate.at(zooNFTProxy.address);
+    const zoo = await ZooNFT.at(zooNFTProxy.address);
     await zoo.initialize(accounts[0]);
     let ret = await zoo.getRoleMember('0x00', 0);
     assert.strictEqual(accounts[0], ret);
@@ -58,7 +58,7 @@ contract("ZooKeeperProxy", accounts => {
 
   it("should failed when call to delegate function without access", async () => {
     try {
-      const zoo = await ZooNFTDelegate.at(zooNFTProxy.address);
+      const zoo = await ZooNFT.at(zooNFTProxy.address);
       await zoo.initialize(accounts[0], {from: accounts[1]});
       assert.fail('never go here');
     } catch (e) {

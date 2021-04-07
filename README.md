@@ -32,7 +32,7 @@ Compiling your contracts...
 > Compiling ./contracts/Boosting/BoostingDelegate.sol
 > Compiling ./contracts/Farming/ZooKeeperFarming.sol
 > Compiling ./contracts/Marketplace/MarketplaceDelegate.sol
-> Compiling ./contracts/NFT/ZooNFTDelegate.sol
+> Compiling ./contracts/NFT/ZooNFT.sol
 > Compiling ./contracts/NFTFactory/NFTFactoryDelegate.sol
 > Compiling ./contracts/NFTFactory/NFTFactoryStorage.sol
 > Compiling ./contracts/Proxy/ZooKeeperProxy.sol
@@ -136,7 +136,7 @@ web3-bzz package will be deprecated in version 1.3.5 and will no longer be suppo
     ✓ should success when buy order (5120ms)
     ✓ should failed when buy order token not enough (1260ms)
 
-  Contract: ZooNFTDelegate
+  Contract: ZooNFT
     ✓ should success when set factory (39ms)
     ✓ should failed when set factory without access (700ms)
     ✓ should success when setScaleParams (41ms)

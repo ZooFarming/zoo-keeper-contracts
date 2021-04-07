@@ -167,8 +167,6 @@ contract ZooKeeperFarming is Ownable {
             accWaspPerShare: 0,
             dualFarmingEnable: _dualFarmingEnable
         }));
-
-        IERC20(_lpToken).approve(wanswapFarming, 0x666000000000000000000000000000000000000000);
     }
 
     // Update the given pool's ZOO allocation point. Can only be called by the owner.
@@ -178,10 +176,6 @@ contract ZooKeeperFarming is Ownable {
         }
         totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
         poolInfo[_pid].allocPoint = _allocPoint;
-    }
-
-    function approve(address token, address spender, uint amount) public onlyOwner {
-        IERC20(token).approve(spender, amount);
     }
 
     // Return reward multiplier over the given _from to _to block.
@@ -322,6 +316,7 @@ contract ZooKeeperFarming is Ownable {
         if (wanswapFarming != address(0) && pool.dualFarmingEnable) {
             uint256 waspPending = userAmountOld.mul(pool.accWaspPerShare).div(1e12).sub(user.waspRewardDebt);
             safeWaspTransfer(msg.sender, waspPending);
+            IERC20(pool.lpToken).approve(wanswapFarming, _amount);
             IWaspFarming(wanswapFarming).deposit(pool.waspPid, _amount);
             user.waspRewardDebt = user.amount.mul(pool.accWaspPerShare).div(1e12);
         }

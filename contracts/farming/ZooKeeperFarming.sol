@@ -37,6 +37,8 @@ interface IWaspFarming {
     function deposit(uint256 _pid, uint256 _amount) external;
 
     function withdraw(uint256 _pid, uint256 _amount) external;
+
+    function emergencyWithdraw(uint256 _pid) external;
 }
 
 contract ZooKeeperFarming is Ownable {
@@ -73,6 +75,8 @@ contract ZooKeeperFarming is Ownable {
         uint256 waspPid;         // PID for extra pool
         uint256 accWaspPerShare; // Accumulated extra token per share, times 1e12.
         bool dualFarmingEnable;
+
+        bool emergencyMode;
     }
 
     // The ZOO TOKEN!
@@ -186,6 +190,10 @@ contract ZooKeeperFarming is Ownable {
 
         if (_to < startBlock) {
             return 0;
+        }
+
+        if (_to > allEndBlock && _from < startBlock) {
+            return allEndBlock.sub(startBlock);
         }
 
         if (_to > allEndBlock) {
@@ -339,16 +347,17 @@ contract ZooKeeperFarming is Ownable {
             }
             pending = pending.mul(multiplier2).div(1e12);
         }
-        mintZoo(pending);
-        safeZooTransfer(msg.sender, pending);
 
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accZooPerShare).div(1e12);
 
+        mintZoo(pending);
+        safeZooTransfer(msg.sender, pending);
+
         if (wanswapFarming != address(0) && pool.dualFarmingEnable) {
             uint256 waspPending = userOldAmount.mul(pool.accWaspPerShare).div(1e12).sub(user.waspRewardDebt);
-            safeWaspTransfer(msg.sender, waspPending);
             user.waspRewardDebt = user.amount.mul(pool.accWaspPerShare).div(1e12);
+            safeWaspTransfer(msg.sender, waspPending);
         }
 
         if (_amount > 0) {
@@ -367,6 +376,28 @@ contract ZooKeeperFarming is Ownable {
         }
 
         emit Withdraw(msg.sender, _pid, _amount);
+    }
+
+    // Withdraw without caring about rewards. EMERGENCY ONLY.
+    function emergencyWithdrawEnable(uint256 _pid) public onlyOwner {
+        PoolInfo storage pool = poolInfo[_pid];
+        pool.emergencyMode = true;
+        IWaspFarming(wanswapFarming).emergencyWithdraw(_pid);
+
+        emit EmergencyWithdraw(msg.sender, _pid, amount);
+    }
+
+    // Withdraw without caring about rewards. EMERGENCY ONLY.
+    function emergencyWithdraw(uint256 _pid) public {
+        PoolInfo storage pool = poolInfo[_pid];
+        require(pool.emergencyMode, "not enable emergence mode");
+
+        UserInfo storage user = userInfo[_pid][msg.sender];
+        uint256 amount = user.amount;
+        user.amount = 0;
+        user.rewardDebt = 0;
+        pool.lpToken.safeTransfer(address(msg.sender), amount);
+        emit EmergencyWithdraw(msg.sender, _pid, amount);
     }
 
     // Safe zoo transfer function, just in case if rounding error causes pool to not have enough ZOOs.

@@ -169,7 +169,8 @@ contract ZooKeeperFarming is Ownable {
             accZooPerShare: 0,
             waspPid: _waspPid,
             accWaspPerShare: 0,
-            dualFarmingEnable: _dualFarmingEnable
+            dualFarmingEnable: _dualFarmingEnable,
+            emergencyMode: false
         }));
     }
 
@@ -383,8 +384,6 @@ contract ZooKeeperFarming is Ownable {
         PoolInfo storage pool = poolInfo[_pid];
         pool.emergencyMode = true;
         IWaspFarming(wanswapFarming).emergencyWithdraw(_pid);
-
-        emit EmergencyWithdraw(msg.sender, _pid, amount);
     }
 
     // Withdraw without caring about rewards. EMERGENCY ONLY.

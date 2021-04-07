@@ -129,15 +129,6 @@ contract ZooKeeperFarming is Ownable {
         wasp = _waspAddr;
     }
 
-    function setBoostingAddr(address _boostingAddr) public onlyOwner {
-        boostingAddr = _boostingAddr;
-    }
-
-    function setWaspSC(address _wanswapFarming, address _wasp) public onlyOwner {
-        wanswapFarming = _wanswapFarming;
-        wasp = _wasp;
-    }
-
     function setWaspPid(uint _pid, uint _waspPid, bool _dualFarmingEnable) public onlyOwner {
         poolInfo[_pid].waspPid = _waspPid;
         poolInfo[_pid].dualFarmingEnable = _dualFarmingEnable;

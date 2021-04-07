@@ -16,12 +16,11 @@ module.exports = async function (deployer) {
 
   let deployerAddr = deployer.provider.addresses[0];
   console.log('deployerAddr', deployerAddr);
-  let proxyAdmin = '0x5560af0f46d00fcea88627a9df7a4798b1b10961';
-  let admin = '0x4cf0a877e906dead748a41ae7da8c220e4247d9e';
-  let wanswapFarmingAddr = '0x01ecaa58733a9232ae5f1d2f74c643f2f8b3bb91';
-  let waspTokenAddr = '0x830053dabd78b4ef0ab0fec936f8a1135b68da6f';
+  let proxyAdmin = '0xa206e4858849f70c3d684e854e7c126ef7bab32e';
+  let admin = '0x83f83439cc3274714a7dad32898d55d17f7c6611';
+  let wanswapFarmingAddr = '0x7e5fe1e587a5c38b4a4a9ba38a35096f8ea35aac';
+  let waspTokenAddr = '0x8b9f9f4aa70b1b0d586be8adfb19c1ac38e05e9a';
   let dividerAddr = '0x3019ed21591bee1e450874437018f39cd26a980b';
-  let faucet = '0xcC74ca14e7648F59aaf5c11d646C7265a9719757';
 
   await deployer.deploy(NFTFactoryDelegate);
   await deployer.deploy(ZooNFT);
@@ -45,16 +44,13 @@ module.exports = async function (deployer) {
   await deployer.deploy(ZooToken);
   let zooToken = await ZooToken.deployed();
 
-  // TODO: REMOVE IN MAINNET
-  await zooToken.mint(faucet, '0x52b7d2dcc80cd400000000');
-
   await deployer.deploy(ZooKeeperFarming,
     zooToken.address,
     dividerAddr,
     boosting.address,
     '0x8ac7230489e80000', // 10 ZOO per block
-    12358300,
-    12358300 + 3600/5*24*365*2,
+    14175786, // UTC+8 2021-4-16 12:00
+    14175786 + 3600/5*24*365*2,  // +2 YEAR
     wanswapFarmingAddr,
     waspTokenAddr,
     );
@@ -147,6 +143,5 @@ module.exports = async function (deployer) {
   console.log('wanswapFarmingAddr:', wanswapFarmingAddr);
   console.log('dividerAddr:', dividerAddr);
   console.log('deployerAddr:', deployerAddr);
-  console.log('testnet faucet:', faucet);
 
 };

@@ -255,7 +255,7 @@ contract ZooKeeperFarming is Ownable {
         
         (lpSupply,) = IWaspFarming(wanswapFarming).userInfo(pool.waspPid, address(this));
 
-        if (block.number > pool.lastRewardBlock && lpSupply != 0) {
+        if (lpSupply != 0) {
             uint256 waspReward = IWaspFarming(wanswapFarming).pendingWasp(pool.waspPid, address(this));
             accWaspPerShare = accWaspPerShare.add(waspReward.mul(1e12).div(lpSupply));
         }

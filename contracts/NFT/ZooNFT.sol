@@ -203,9 +203,7 @@ contract ZooNFT is
         }
         return
             LEVEL_CHANCE[level - 1]
-                .mul(CATEGORY_CHANCE[category - 1])
-                .mul(ITEM_CHANCE[item - 1])
-                .div(1e12)
-                .div(1e12);
+                .mul(CATEGORY_CHANCE[category - 1]).div(1e12)
+                .mul(ITEM_CHANCE[item - 1]).div(1e12);
     }
 }

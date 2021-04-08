@@ -143,7 +143,10 @@ contract ZooKeeperFarming is Ownable {
         poolInfo[_pid].accWaspPerShare = 0;
     }
 
-    function withdrawAllFromWasp(uint _waspPid) public onlyOwner {
+    function withdrawAllFromWasp(uint _pid) public onlyOwner {
+        PoolInfo storage pool = poolInfo[_pid];
+        pool.dualFarmingEnable = false;
+        uint _waspPid = pool.waspPid;
         uint total;
         (total,) = IWaspFarming(wanswapFarming).userInfo(_waspPid, address(this));
         IWaspFarming(wanswapFarming).withdraw(_waspPid, total);
@@ -386,6 +389,7 @@ contract ZooKeeperFarming is Ownable {
     function emergencyWithdrawEnable(uint256 _pid) public onlyOwner {
         PoolInfo storage pool = poolInfo[_pid];
         pool.emergencyMode = true;
+        pool.dualFarmingEnable = false;
         IWaspFarming(wanswapFarming).emergencyWithdraw(_pid);
     }
 

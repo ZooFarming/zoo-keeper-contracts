@@ -9,7 +9,7 @@ const MarketplaceDelegate = artifacts.require('MarketplaceDelegate');
 const nftConfig = require('./nft_config.json');
 
 module.exports = async function (deployer) {
-  if (deployer.network === 'development') {
+  if (deployer.network === 'development' || deployer.network === 'coverage') {
     console.log('no need migration');
     return;
   }

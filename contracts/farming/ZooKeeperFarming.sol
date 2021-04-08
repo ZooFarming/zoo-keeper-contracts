@@ -273,20 +273,22 @@ contract ZooKeeperFarming is Ownable {
     // Update reward variables of the given pool to be up-to-date.
     function updatePool(uint256 _pid) public {
         PoolInfo storage pool = poolInfo[_pid];
-        if (block.number <= pool.lastRewardBlock) {
-            return;
-        }
+        
         uint256 lpSupply;
         if (wanswapFarming == address(0) || !pool.dualFarmingEnable) {
             lpSupply = pool.lpToken.balanceOf(address(this));
             if (lpSupply == 0) {
-                pool.lastRewardBlock = block.number;
+                if (pool.lastRewardBlock < block.number) {
+                    pool.lastRewardBlock = block.number;
+                }
                 return;
             }
         } else {
             (lpSupply,) = IWaspFarming(wanswapFarming).userInfo(pool.waspPid, address(this));
             if (lpSupply == 0) {
-                pool.lastRewardBlock = block.number;
+                if (pool.lastRewardBlock < block.number) {
+                    pool.lastRewardBlock = block.number;
+                }
                 return;
             }
             uint256 waspReward = IWaspFarming(wanswapFarming).pendingWasp(pool.waspPid, address(this));
@@ -295,6 +297,9 @@ contract ZooKeeperFarming is Ownable {
             IWaspFarming(wanswapFarming).withdraw(pool.waspPid, 0);
         }
         
+        if (block.number <= pool.lastRewardBlock) {
+            return;
+        }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
         uint256 zooReward = multiplier.mul(zooPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
         pool.accZooPerShare = pool.accZooPerShare.add(zooReward.mul(1e12).div(lpSupply));

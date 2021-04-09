@@ -49,8 +49,8 @@ module.exports = async function (deployer) {
     dividerAddr,
     boosting.address,
     '0x8ac7230489e80000', // 10 ZOO per block
-    14175786, // UTC+8 2021-4-16 12:00
-    14175786 + 3600/5*24*365*2,  // +2 YEAR
+    14174838, // UTC+8 2021-4-16 16:00
+    14174838 + 3600/5*24*365*2,  // +2 YEAR
     wanswapFarmingAddr,
     waspTokenAddr,
     );

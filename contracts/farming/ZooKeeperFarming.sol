@@ -108,6 +108,9 @@ contract ZooKeeperFarming is Ownable {
 
     uint256 public constant TEAM_PERCENT = 23; 
 
+    uint256 public constant PID_NOT_SET = 0xffffffff; 
+
+
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -135,7 +138,7 @@ contract ZooKeeperFarming is Ownable {
 
     function setWaspPid(uint _pid, uint _waspPid, bool _dualFarmingEnable) public onlyOwner {
         // only support set once"
-        if (poolInfo[_pid].waspPid == 0) {
+        if (poolInfo[_pid].waspPid == PID_NOT_SET) {
             poolInfo[_pid].waspPid = _waspPid;
         }
         
@@ -144,7 +147,7 @@ contract ZooKeeperFarming is Ownable {
 
     function withdrawAllFromWasp(uint _pid) public onlyOwner {
         updatePool(_pid);
-        
+
         PoolInfo storage pool = poolInfo[_pid];
         pool.dualFarmingEnable = false;
         uint _waspPid = pool.waspPid;
@@ -169,12 +172,18 @@ contract ZooKeeperFarming is Ownable {
         }
         uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
         totalAllocPoint = totalAllocPoint.add(_allocPoint);
+
+        uint waspPidUsed = PID_NOT_SET;
+        if (_dualFarmingEnable) {
+            waspPidUsed = _waspPid;
+        }
+
         poolInfo.push(PoolInfo({
             lpToken: _lpToken,
             allocPoint: _allocPoint,
             lastRewardBlock: lastRewardBlock,
             accZooPerShare: 0,
-            waspPid: _waspPid,
+            waspPid: waspPidUsed,
             accWaspPerShare: 0,
             dualFarmingEnable: _dualFarmingEnable,
             emergencyMode: false

@@ -22,16 +22,6 @@ contract ZooNFT is
         uint256 random;
     }
 
-    // Use for boosting calc: boosting = (level - 1) * a + category * b + item * c + random * d;
-    struct ScaleParams {
-        uint256 a;
-        uint256 b;
-        uint256 c;
-        uint256 d;
-    }
-
-    ScaleParams public scaleParams;
-
     // tokenId => tokenInfo
     mapping(uint => TokenInfo) public tokenInfo;
 

@@ -140,10 +140,11 @@ contract ZooKeeperFarming is Ownable {
         }
         
         poolInfo[_pid].dualFarmingEnable = _dualFarmingEnable;
-        poolInfo[_pid].accWaspPerShare = 0;
     }
 
     function withdrawAllFromWasp(uint _pid) public onlyOwner {
+        updatePool(_pid);
+        
         PoolInfo storage pool = poolInfo[_pid];
         pool.dualFarmingEnable = false;
         uint _waspPid = pool.waspPid;

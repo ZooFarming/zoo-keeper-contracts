@@ -37,7 +37,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
 
     function initialize(address admin, address _zooToken, address _zooNFT) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
-        goldenChestPrice = 30000 ether;
+        goldenChestPrice = 25000 ether;
         maxNFTLevel = 4;
         maxNFTCategory = 6;
         maxNFTItem = 5;
@@ -49,8 +49,8 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         priceDown0 = 99;
         priceDown1 = 100;
         dynamicPriceTimeUnit = 1 hours;
-        dynamicMinPrice = 2000 ether;
-        dynamicMaxPrice = 100000 ether;
+        dynamicMinPrice = 1000 ether;
+        dynamicMaxPrice = 50000 ether;
         lastOrderTimestamp = block.timestamp;
         lastPrice = goldenChestPrice;
         stakePlanCount = 3;

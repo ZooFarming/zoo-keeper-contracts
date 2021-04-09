@@ -73,7 +73,7 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
 
     function withdraw(uint _pid, address _user) external {
         require(hasRole(ZOO_FARMING_ROLE, msg.sender));
-        require(checkWithdraw(_pid, _user), "lock time not finish");
+        require(checkWithdraw(_pid, _user), "The lock time has not expired");
         UserInfo storage info = userInfo[_pid][_user];
         info.startTime = 0;
         info.lockTime = 0;

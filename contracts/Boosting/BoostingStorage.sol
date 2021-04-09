@@ -22,6 +22,8 @@ contract BoostingStorage {
 
     uint public minLockDays;
 
+    uint public maxLockDays;
+
     uint public baseBoost;
 
     uint public increaseBoost;

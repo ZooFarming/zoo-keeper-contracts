@@ -30,6 +30,7 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
         _setRoleAdmin(ZOO_FARMING_ROLE, DEFAULT_ADMIN_ROLE);
         minLockDays = 8 days;
+        maxLockDays = 180 days;
         baseBoost = 2e9;
         increaseBoost = 4e9;
     }
@@ -51,8 +52,15 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
         increaseBoost = _increaseBoost;
     }
 
+    function setMaxLockDays(uint _maxLockDays) public {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        maxLockDays = _maxLockDays;
+    }
+
     function deposit(uint _pid, address _user, uint _lockTime, uint _tokenId) external {
         require(hasRole(ZOO_FARMING_ROLE, msg.sender));
+        require(_lockTime <= maxLockDays, "lock time too large");
+
         UserInfo storage info = userInfo[_pid][_user];
 
         if (_lockTime > info.lockTime || checkWithdraw(_pid, _user)) {
@@ -95,7 +103,7 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
         if (info.tokenId != 0x0) {
             nftBoosting = IZooNFT(NFTAddress).getLockTimeReduce(info.tokenId);
         }
-        uint endTime = info.startTime + info.lockTime.mul(nftBoosting).div(MULTIPLIER_SCALE);
+        uint endTime = info.startTime.add(info.lockTime.mul(nftBoosting).div(MULTIPLIER_SCALE));
         return endTime;
     }
 

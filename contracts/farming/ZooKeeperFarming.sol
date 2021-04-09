@@ -337,11 +337,10 @@ contract ZooKeeperFarming is Ownable {
             mintZoo(pending);
             safeZooTransfer(msg.sender, pending);
         }
-        if(_amount > 0) {
-            pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
-            user.amount = user.amount.add(_amount);
-        }
+
+        user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(pool.accZooPerShare).div(1e12);
+        pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
 
         if (wanswapFarming != address(0) && pool.dualFarmingEnable) {
             uint256 waspPending = userAmountOld.mul(pool.accWaspPerShare).div(1e12).sub(user.waspRewardDebt);

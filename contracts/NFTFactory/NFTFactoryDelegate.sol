@@ -209,10 +209,14 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         }
 
         // every 1 hour idle, price goes down 1%
-        if (lastPrice.mul(priceDown0**hourPassed).div(priceDown1**hourPassed) < dynamicMinPrice) {
-            return dynamicMinPrice;
+        uint newPrice = lastPrice;
+        for (uint i=0; i<hourPassed; i++) {
+            newPrice = newPrice.mul(priceDown0).div(priceDown1);
+            if (newPrice < dynamicMinPrice) {
+                return dynamicMinPrice;
+            }
         }
-        return lastPrice.mul(priceDown0**hourPassed).div(priceDown1**hourPassed);
+        return newPrice;
     }
 
     function priceRaise(uint currentPrice) private {

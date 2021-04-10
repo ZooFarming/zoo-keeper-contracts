@@ -14,6 +14,19 @@ deploy sequence:
 5) ZooFarming;
 6) Marketplace, proxy;
 
+# MAINNET DEPLOY
+
+```
+-------------------------------
+nftFactory: 0xBCE166860F514b6134AbC6E9Aa0005CC489b6352
+zooNFT: 0x38034B2E6ae3fB7FEC5D895a9Ff3474bA0c283F6
+boosting: 0x1590cc5967DBa3fAC7F1A825EAE7b6442aEFc082
+marketplace: 0x6b7466C38Dd007F5aC20659A71d96412840b4EFd
+zooToken: 0x6e11655d6aB3781C6613db8CB1Bc3deE9a7e111F
+zooKeeperFarming: 0x4E4Cb1b0b4953EA657EAF29198eD79C22d1a74A2
+------------------------------
+```
+
 # DEVELOPMENT
 
 ```

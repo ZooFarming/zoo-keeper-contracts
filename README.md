@@ -32,6 +32,7 @@ zooKeeperFarming: 0x4E4Cb1b0b4953EA657EAF29198eD79C22d1a74A2
 ```
 $ yarn
 $ yarn global add ganache-cli
+$ ganache-cli
 $ yarn test
 
 yarn run v1.22.10

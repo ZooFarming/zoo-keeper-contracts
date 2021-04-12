@@ -25,6 +25,9 @@ marketplace: 0x6b7466C38Dd007F5aC20659A71d96412840b4EFd
 zooToken: 0x6e11655d6aB3781C6613db8CB1Bc3deE9a7e111F
 zooKeeperFarming: 0x4E4Cb1b0b4953EA657EAF29198eD79C22d1a74A2
 ------------------------------
+Zoo farming start block: 14174838
+Zoo farming end Block: 14174838 + 3600/5*24*365*2
+Zoo per block: 10 zoo per block
 ```
 
 # DEVELOPMENT

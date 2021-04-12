@@ -14,6 +14,11 @@ module.exports = async function (deployer) {
     return;
   }
 
+  // TODO: FIX
+  await deployer.deploy(NFTFactoryDelegate);
+  return;
+
+
   let deployerAddr = deployer.provider.addresses[0];
   console.log('deployerAddr', deployerAddr);
   let proxyAdmin = '0xa206e4858849f70c3d684e854e7c126ef7bab32e';

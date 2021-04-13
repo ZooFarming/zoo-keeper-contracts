@@ -332,7 +332,8 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         uint random4 = uint(keccak256(abi.encode(random3)));
         uint random5 = uint(keccak256(abi.encode(random4)));
 
-        level = getMaskValue(random5.mod(100), LEVEL_MASK) + 1;
+        // mod 100 -> 96 is used for fix the total chance is 96% not 100% issue.
+        level = getMaskValue(random5.mod(96), LEVEL_MASK) + 1;
         category = getMaskValue(random4.mod(100), CATEGORY_MASK) + 1;
         if (golden) {
             item = getMaskValue(random3.mod(100), ITEM_MASK) + 1;

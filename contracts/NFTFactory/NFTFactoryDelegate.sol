@@ -135,6 +135,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
     }
 
     function buyGoldenChest() public {
+        require(msg.sender == tx.origin, "can not call from contract");
         uint currentPrice = queryGoldenPrice();
         lastOrderTimestamp = block.timestamp;
         priceRaise(currentPrice);
@@ -157,6 +158,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
     }
 
     function buySilverChest() public {
+        require(msg.sender == tx.origin, "can not call from contract");
         uint currentPrice = queryGoldenPrice();
         lastOrderTimestamp = block.timestamp;
         // every 1 order, the price goes up 1%
@@ -264,6 +266,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
     }
 
     function stakeClaim(uint _type) public {
+        require(msg.sender == tx.origin, "can not call from contract");
         require(_type < stakePlanCount, "_type error");
         require(isStakeFinished(_type), "There is still pending stake");
 

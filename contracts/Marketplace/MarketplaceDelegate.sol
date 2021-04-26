@@ -128,6 +128,21 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         if (info.tokenId >= 20 && info.tokenId <= 47) {
             return false;
         }
+        if (info.tokenId == 99) {
+            return false;
+        }
+        if (info.tokenId == 89) {
+            return false;
+        }
+        if (info.tokenId == 86) {
+            return false;
+        }
+        if (info.tokenId == 78) {
+            return false;
+        }
+        if (info.tokenId == 75) {
+            return false;
+        }
 
         return true;
     }

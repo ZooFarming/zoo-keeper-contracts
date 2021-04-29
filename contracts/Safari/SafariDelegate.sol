@@ -50,13 +50,31 @@ contract SafariDelegate is SafariStorage, Initializable, AccessControl {
         }));
     }
 
+    // Update the given pool's. Can only be called by the owner.
+    function set(uint256 _pid, uint256 _rewardPerBlock, uint256 _bonusEndBlock, bool _withUpdate) public {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        if (_withUpdate) {
+            massUpdatePools();
+        }
+        poolInfo[_pid].rewardPerBlock = _rewardPerBlock;
+        poolInfo[_pid].bonusEndBlock = _bonusEndBlock;
+    }
+
+    // Update reward vairables for all pools. Be careful of gas spending!
+    function massUpdatePools() public {
+        uint256 length = poolInfo.length;
+        for (uint256 pid = 0; pid < length; ++pid) {
+            updatePool(pid);
+        }
+    }
+
     // Return reward multiplier over the given _from to _to block.
     function getMultiplier(uint256 _from, uint256 _to) internal pure returns (uint256) {
         return _to.sub(_from);
     }
 
     // View function to see pending wanWans on frontend.
-    function pendingReward(uint256 _pid, address _user) external view returns (uint256,uint256) {
+    function pendingReward(uint256 _pid, address _user) external view returns (uint256, uint256) {
         require(_pid < poolInfo.length,"pid >= poolInfo.length");
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
@@ -85,8 +103,8 @@ contract SafariDelegate is SafariStorage, Initializable, AccessControl {
         }
 
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, curBlockNumber);
-        uint256 wanWanReward = multiplier.mul(pool.rewardPerBlock);
-        pool.accRewardPerShare = pool.accRewardPerShare.add(wanWanReward.mul(1e12).div(pool.currentSupply));
+        uint256 tokenReward = multiplier.mul(pool.rewardPerBlock);
+        pool.accRewardPerShare = pool.accRewardPerShare.add(tokenReward.mul(1e12).div(pool.currentSupply));
         pool.lastRewardBlock = curBlockNumber;
     }
 
@@ -94,17 +112,18 @@ contract SafariDelegate is SafariStorage, Initializable, AccessControl {
         require(_pid < poolInfo.length, "pid >= poolInfo.length");
         PoolInfo storage pool = poolInfo[_pid];
         require(block.number < pool.bonusEndBlock,"already end");
-        
+
         updatePool(_pid);
         
         UserInfo storage user = userInfo[_pid][msg.sender];
 
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
-        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
         
         pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
         user.amount = user.amount.add(_amount);
         pool.currentSupply = pool.currentSupply.add(_amount);
+
+        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
 
         if(pending > 0) {
             if (pool.rewardToken == address(wwan)) { // convert wwan to wan 
@@ -125,7 +144,6 @@ contract SafariDelegate is SafariStorage, Initializable, AccessControl {
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
         uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
-        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
         
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
@@ -133,6 +151,7 @@ contract SafariDelegate is SafariStorage, Initializable, AccessControl {
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
 
+        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
         if(pending > 0) {
             if (pool.rewardToken == address(wwan)) { // convert wwan to wan 
                 wwan.withdraw(pending);
@@ -152,10 +171,9 @@ contract SafariDelegate is SafariStorage, Initializable, AccessControl {
         uint256 amount = user.amount;
         if(user.amount > 0){
             pool.currentSupply = pool.currentSupply.sub(user.amount);
-            uint _amount = user.amount;
             user.amount = 0;
             user.rewardDebt = 0;
-            pool.lpToken.safeTransfer(address(msg.sender), _amount);
+            pool.lpToken.safeTransfer(address(msg.sender), amount);
         }
         emit EmergencyWithdraw(msg.sender, _pid, amount);
     }

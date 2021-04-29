@@ -25,7 +25,7 @@
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
 const WanProvider = require('wanchain-truffle-sdk').WanProvider;
-const wanProvider = new WanProvider(process.env.PK, "https://gwan-ssl.wandevs.org:56891");
+const wanProvider = new WanProvider(process.env.PK, "https://gwan-ssl.wandevs.org:46891");
 // const wanProvider = new HDWalletProvider("", "https://gwan-ssl.wandevs.org:46891");
 
 module.exports = {
@@ -92,7 +92,7 @@ module.exports = {
     },
     mainnet: {
       provider: wanProvider,
-      network_id: "1",
+      network_id: "888",
       skipDryRun: true,
       gas: 1e7,
       gasPrice: 1e9

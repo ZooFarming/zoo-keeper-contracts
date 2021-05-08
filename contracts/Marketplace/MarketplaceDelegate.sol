@@ -160,6 +160,14 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
             return false;
         }
 
+        if (info.tokenId == 222) {
+            return false;
+        }
+
+        if (info.tokenId == 252) {
+            return false;
+        }
+
         return true;
     }
 

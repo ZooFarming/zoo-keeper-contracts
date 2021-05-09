@@ -21,6 +21,10 @@ interface IZooNFTMint {
     function itemSupply(uint _level, uint _category, uint _item) external view returns (uint);
 }
 
+interface IPrivateOracle {
+    function inputSeed(uint seed_) external;
+}
+
 // NFTFactory
 contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFactoryStorageV2 {
     using SafeERC20 for IERC20;
@@ -312,9 +316,9 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         return block.timestamp > (stakeInfo[msg.sender][_type].startTime.add(stakeInfo[msg.sender][_type].lockTime));
     }
 
-    function isSilverSuccess() private view returns (bool) {
+    function isSilverSuccess() private returns (bool) {
         uint totalSupply = IZooNFTMint(zooNFT).totalSupply();
-        uint random1 = uint(keccak256(abi.encode(msg.sender, blockhash(block.number - 1), block.coinbase, block.timestamp, totalSupply, _foundationSeed)));
+        uint random1 = uint(keccak256(abi.encode(msg.sender, blockhash(block.number - 1), block.coinbase, block.timestamp, totalSupply, getRandomSeed())));
         uint random2 = uint(keccak256(abi.encode(random1)));
         uint random3 = uint(keccak256(abi.encode(random2)));
         if (random2.mod(1000).add(random3.mod(1000)).mod(10) == 6) {
@@ -324,10 +328,10 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
     } 
 
     // mint special level NFT
-    function mintLeveledNFT(uint _level) private view returns (uint tokenId, uint level, uint category, uint item, uint random) {
+    function mintLeveledNFT(uint _level) private returns (uint tokenId, uint level, uint category, uint item, uint random) {
         uint totalSupply = IZooNFTMint(zooNFT).totalSupply();
         tokenId = totalSupply + 1;
-        uint random1 = uint(keccak256(abi.encode(tokenId, msg.sender, blockhash(block.number - 1), block.coinbase, block.timestamp, _foundationSeed)));
+        uint random1 = uint(keccak256(abi.encode(tokenId, msg.sender, blockhash(block.number - 1), block.coinbase, block.timestamp, getRandomSeed())));
         uint random2 = uint(keccak256(abi.encode(random1)));
         uint random3 = uint(keccak256(abi.encode(random2)));
         uint random4 = uint(keccak256(abi.encode(random3)));
@@ -338,10 +342,10 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         random = random1.mod(maxNFTRandom) + 1;
     }
 
-    function randomNFT(bool golden) private view returns (uint tokenId, uint level, uint category, uint item, uint random) {
+    function randomNFT(bool golden) private returns (uint tokenId, uint level, uint category, uint item, uint random) {
         uint totalSupply = IZooNFTMint(zooNFT).totalSupply();
         tokenId = totalSupply + 1;
-        uint random1 = uint(keccak256(abi.encode(tokenId, msg.sender, blockhash(block.number - 1), block.coinbase, block.timestamp, _foundationSeed)));
+        uint random1 = uint(keccak256(abi.encode(tokenId, msg.sender, blockhash(block.number - 1), block.coinbase, block.timestamp, getRandomSeed())));
         uint random2 = uint(keccak256(abi.encode(random1)));
         uint random3 = uint(keccak256(abi.encode(random2)));
         uint random4 = uint(keccak256(abi.encode(random3)));
@@ -364,5 +368,13 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
                 return i;
             }
         }
+    }
+
+    function getRandomSeed() internal returns (uint) {
+        uint count = getRoleMemberCount(ORACLE_ROLE);
+        require(count >= 1, "no private oracle found");
+        address privateOracle = getRoleMember(ORACLE_ROLE, count-1);
+        IPrivateOracle(privateOracle).inputSeed(1);
+        return _foundationSeed;
     }
 }

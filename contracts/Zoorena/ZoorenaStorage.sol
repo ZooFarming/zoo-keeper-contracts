@@ -20,6 +20,12 @@ contract ZoorenaStorage {
         uint fightStartBlock;
     }
 
+    address public playToken;
+
+    address public nftFactory;
+
+    address public zooNFT;
+
     bool public pause;
 
     // A timestamp for round 0 betting start, Monday UTC 00:00
@@ -28,19 +34,8 @@ contract ZoorenaStorage {
     // A round total seconds (A week)
     uint public roundTime;
 
-    // fight start time = roundTime - startTime
-    uint public startTime;
-
-    // bet close time = roundTime - closeTime
+    // bet close time in a round 
     uint public closeTime;
-
-    // time for each event
-    uint public eventTime;
-
-    // init power point for both
-    uint public initPower;
-
-    uint internal _foundationSeed;
 
     // roundId => info
     mapping(uint => RoundInfo) public roundInfo;
@@ -48,14 +43,8 @@ contract ZoorenaStorage {
     // roundId => index => user
     mapping(uint => mapping(uint => address)) public leftUser;
 
-    // roundId => index => tokenId
-    mapping(uint => mapping(uint => uint)) public leftNft;
-
     // roundId => index => user
     mapping(uint => mapping(uint => address)) public rightUser;
-
-    // roundId => index => tokenId
-    mapping(uint => mapping(uint => uint)) public rightNft;
 
     // roundId => user address => eventIndex(0~8) => eventSelection(0:empty, silver:1~10, golden:101~110)
     mapping(uint => mapping(address => mapping(uint => uint))) public userEvent;
@@ -65,6 +54,9 @@ contract ZoorenaStorage {
 
     // jackpot: roundId => index(0~2) => user address
     mapping(uint => mapping(uint => address)) public jackpotResult;
+
+    // eventId(1~8) => options count
+    mapping(uint => uint) public eventOptions;
 
     uint[] public LEVEL_MASK; // 60%, 30%, 5%, 1%
 

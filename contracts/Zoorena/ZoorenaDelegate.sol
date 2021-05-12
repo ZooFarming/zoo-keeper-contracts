@@ -17,8 +17,14 @@ interface INftFactory {
     function queryGoldenPrice() external view returns (uint);
 }
 
-interface IZooToken {
+interface IZooTokenBurn {
     function burn(uint256 _amount) external;
+}
+
+interface IZooNFTChest {
+    function mint(uint tokenId, uint _level, uint _category, uint _item, uint _random) external;
+    function totalSupply() external view returns (uint);
+    function itemSupply(uint _level, uint _category, uint _item) external view returns (uint);
 }
 
 interface IZooNFTBoost {
@@ -26,10 +32,16 @@ interface IZooNFTBoost {
     function getBoosting(uint _tokenId) external view returns (uint);
 }
 
+interface IPrivateSeedOracle {
+    function inputSeed(uint seed_) external;
+}
+
 contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaStorage {
     
     // pos random contract address
     address public constant POS_RANDOM_ADDRESS = address(0x262);
+
+    bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
 
     // scale of power point
     uint public constant POWER_SCALE = 1e10;
@@ -40,7 +52,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
     uint public constant eventCount = 9;
 
     // time for each event
-    uint public constant eventBlock = 6;
+    uint public constant eventBlock = 3;
 
     uint public constant personPower = 10;
 
@@ -50,6 +62,10 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
     event Bet(address indexed user, uint indexed roundId, uint indexed eventId, uint selection);
 
     event FightStart(uint indexed roundId, uint indexed fightStartBlock);
+
+    event MintNFT(uint indexed level, uint indexed category, uint indexed item, uint random, uint tokenId, uint itemSupply, address user);
+
+    event ClaimJackpot(address indexed user, uint indexed amount);
 
     function initialize(address admin, address _playToken, address _nftFactory, address _zooNFT) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
@@ -91,6 +107,18 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         grantRole(ROBOT_ROLE, robot);
     }
 
+    function configOracle(address oracle) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        _setRoleAdmin(ORACLE_ROLE, DEFAULT_ADMIN_ROLE);
+        grantRole(ORACLE_ROLE, oracle);
+        _foundationSeed = uint(keccak256(abi.encode(msg.sender, blockhash(block.number - 1), block.coinbase)));
+    }
+
+    function inputSeed(uint seed_) external {
+        require(hasRole(ORACLE_ROLE, msg.sender));
+        _foundationSeed = seed_;
+    }
+
     function configEventOptions(uint eventId, uint optionCount) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         eventOptions[eventId] = optionCount;
@@ -104,6 +132,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
     }
 
     function bet(uint eventId, uint selection) external {
+        require(tx.origin == msg.sender, "not allow contract call");
         require(selection != 0 && selection != 100, "selection error");
         require(eventId < 9, "event Id error");
         require(getStatus() == 1, "betting closed");
@@ -124,6 +153,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
     // side: left:1, right:2
     function depositNFT(uint side, uint tokenId) external {
+        require(tx.origin == msg.sender, "not allow contract call");
         require(getStatus() == 1, "betting closed");
         require(side >=1 && side <= 2, "side error");
         require(tokenId != 0, "NFT error");
@@ -142,6 +172,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
     }
 
     function withdrawNFT() external {
+        require(tx.origin == msg.sender, "not allow contract call");
         require(getStatus() == 1, "betting closed");
         uint roundId = currentRoundId();
         uint tokenId = userNft[msg.sender];
@@ -166,15 +197,255 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         
         roundInfo[roundId].fightStartBlock = fightStartBlock;
 
+        uint randomSeed = uint(keccak256(abi.encode(blockhash(block.number - 1), blockhash(block.number - 2), blockhash(block.number - 3), block.coinbase, block.timestamp)));
+
+        roundInfo[roundId].randomSeed = randomSeed;
+
         emit FightStart(roundId, fightStartBlock);
     }
 
-    function claimEvent(uint roundId, uint eventId) external {
+    // event from 0 to 8
+    // returns: 0: result waiting, 1~10 the right event
+    function getEventResult(uint roundId, uint eventId) public view returns(uint) {
+        uint startBlock = roundInfo[roundId].fightStartBlock;
+        uint randomSeed = roundInfo[roundId].randomSeed;
+        // fight not start
+        if (startBlock == 0 || roundInfo[roundId].randomSeed == 0) {
+            return 0;
+        }
 
+        // out of range
+        if (eventId > eventCount) {
+            return 0;
+        }
+
+        // fight result
+        if (eventId == 0) {
+            return getFightResult(roundId);
+        }
+
+        uint eventRunBlock = startBlock + (eventId*2 - 1) * eventBlock;
+        uint random = uint(keccak256(abi.encode(eventRunBlock, eventRunBlock * 66, randomSeed, block.coinbase, block.timestamp)));
+        uint opCnt = eventOptions[eventId];
+        return random.mod(opCnt).add(1); 
     }
 
-    function claimJackpot(uint roundId) external {
+    function getFightingReport(uint roundId, uint reportId) public view returns(bool done, uint leftDown, uint rightDown) {
+        uint startBlock = roundInfo[roundId].fightStartBlock;
+        uint randomSeed = roundInfo[roundId].randomSeed;
+        // fight not start
+        if (startBlock == 0 || roundInfo[roundId].randomSeed == 0) {
+            done = false;
+            return (done, leftDown, rightDown);
+        }
 
+        // out of range
+        if (reportId > (eventCount + 1)) {
+            done = false;
+            return (done, leftDown, rightDown);
+        }
+
+        uint fightBlock = startBlock + (reportId*2) * eventBlock;
+        uint random = uint(keccak256(abi.encode(fightBlock, fightBlock * 55, randomSeed, block.coinbase, block.timestamp)));
+        uint leftPower = roundInfo[roundId].leftPower;
+        uint rightPower = roundInfo[roundId].rightPower;
+        uint winnerCode = random.mod(leftPower.add(rightPower));
+
+        uint baseDamage = uint(keccak256(abi.encode(random))).mod(5);
+        uint damageDifference = uint(keccak256(abi.encode(random, baseDamage))).mod(5);
+
+        done = true;
+        
+        // left win
+        if (winnerCode < leftPower) {
+            leftDown = baseDamage + damageDifference;
+            rightDown = baseDamage;
+        } else { // right win
+            leftDown = baseDamage;
+            rightDown = baseDamage + damageDifference;
+        }
+
+        return (done, leftDown, rightDown);
+    }
+
+    function getFightResult(uint roundId) public view returns (uint) {
+        uint leftLife = 100;
+        uint rightLife = 100;
+        uint leftDown;
+        uint rightDown;
+        bool done = false;
+        for (uint i=0; i<9; i++) {
+            (done, leftDown, rightDown) = getFightingReport(roundId, i);
+
+            if (!done) {
+                return 0;
+            }
+
+            if (leftLife > leftDown) {
+                leftLife = leftLife - leftDown;
+            } else {
+                leftLife = 0;
+            }
+
+            if (rightLife > rightDown) {
+                rightLife = rightLife - rightDown;
+            } else {
+                rightLife = 0;
+            }
+        }
+
+        if (leftLife > rightLife) {
+            return 1;
+        } else {
+            return 2;
+        }
+    }
+
+    function claimEvent(uint roundId, uint eventId, address user) external {
+        require(tx.origin == msg.sender, "not allow contract call");
+        uint userSelection = userEvent[roundId][msg.sender][eventId];
+        require(userSelection > 0, "User not bet");
+        bool golden = false;
+        if (userSelection > 100) {
+            golden = true;
+            userSelection = userSelection - 100;
+        }
+
+        uint eventResult = getEventResult(roundId, eventId);
+        require(userSelection == eventResult, "User bet error");
+
+        require(!eventClaimed[roundId][user][eventId], "Already claimed");
+
+        eventClaimed[roundId][user][eventId] = true;
+
+        if (golden) {
+            openGoldenChest(user);
+        } else {
+            openSilverChest(user);
+        }
+    }
+
+    function getJackpot(uint roundId) public view returns(bool done, address[] memory winners) {
+        uint calcTime = baseTime + roundTime*roundId;
+        uint posRandom = IPosRandom(POS_RANDOM_ADDRESS).getRandomNumberByEpochId(calcTime / 3600 / 24 + 1);
+        if (posRandom == 0) {
+            return (done, winners);
+        }
+
+        uint fightResult = getFightResult(roundId);
+        if (fightResult == 0) {
+            return (done, winners);
+        }
+
+        winners = new address[](3);
+
+        // left win
+        if (fightResult == 1) {
+            uint leftCnt = roundInfo[roundId].leftUserCount;
+            if (leftCnt == 0) {
+                return (done, winners);
+            } 
+
+            done = true;
+
+            if (leftCnt == 1) {
+                winners[0] = leftUser[roundId][0];
+                winners[1] = leftUser[roundId][0];
+                winners[2] = leftUser[roundId][0];
+                return (done, winners);
+            }
+
+            if (leftCnt == 2) {
+                winners[0] = leftUser[roundId][0];
+                winners[1] = leftUser[roundId][1];
+                winners[2] = address(0);
+                return (done, winners);
+            }
+
+            if (leftCnt == 3) {
+                winners[0] = leftUser[roundId][0];
+                winners[1] = leftUser[roundId][1];
+                winners[2] = leftUser[roundId][2];
+                return (done, winners);
+            }
+
+            winners[0] = leftUser[roundId][posRandom.mod(leftCnt)];
+
+            for (uint i=0; i<100; i++) {
+                winners[1] = leftUser[roundId][uint(keccak256(abi.encode(posRandom))).mod(leftCnt)];
+                if (winners[1] != winners[0]) {
+                    break;
+                }
+            }
+
+            for (uint i=0; i<100; i++) {
+                winners[2] = leftUser[roundId][uint(keccak256(abi.encode(posRandom, posRandom))).mod(leftCnt)];
+                if (winners[2] != winners[0] && winners[2] != winners[1]) {
+                    break;
+                }
+            }
+
+        } else {
+            uint rightCnt = roundInfo[roundId].rightUserCount;
+            if (rightCnt == 0) {
+                return (done, winners);
+            } 
+
+            done = true;
+
+            if (rightCnt == 1) {
+                winners[0] = rightUser[roundId][0];
+                winners[1] = rightUser[roundId][0];
+                winners[2] = rightUser[roundId][0];
+                return (done, winners);
+            }
+
+            if (rightCnt == 2) {
+                winners[0] = rightUser[roundId][0];
+                winners[1] = rightUser[roundId][1];
+                winners[2] = address(0);
+                return (done, winners);
+            }
+
+            if (rightCnt == 3) {
+                winners[0] = rightUser[roundId][0];
+                winners[1] = rightUser[roundId][1];
+                winners[2] = rightUser[roundId][2];
+                return (done, winners);
+            }
+
+            winners[0] = rightUser[roundId][posRandom.mod(rightCnt)];
+
+            for (uint i=0; i<100; i++) {
+                winners[1] = rightUser[roundId][uint(keccak256(abi.encode(posRandom))).mod(rightCnt)];
+                if (winners[1] != winners[0]) {
+                    break;
+                }
+            }
+
+            for (uint i=0; i<100; i++) {
+                winners[2] = rightUser[roundId][uint(keccak256(abi.encode(posRandom, posRandom))).mod(rightCnt)];
+                if (winners[2] != winners[0] && winners[2] != winners[1]) {
+                    break;
+                }
+            }
+        }
+    }
+
+    function claimJackpot(uint roundId, address user) external {
+        require(tx.origin == msg.sender, "not allow contract call");
+        bool done;
+        address[] memory winners;
+        (done, winners) = getJackpot(roundId);
+        require(done, "Not finish");
+        require(user == winners[0] || user == winners[1] || user == winners[2], "Not winner");
+        require(!jackpotClaimed[roundId][user], "Already claimed");
+        jackpotClaimed[roundId][user] = true;
+        uint balance = IERC20(playToken).balanceOf(address(this));
+        uint amount = balance.div(3);
+
+        IERC20(playToken).transfer(user, amount);
+        emit ClaimJackpot(user, amount);
     }
 
     function currentRoundId() public view returns(uint) {
@@ -204,7 +475,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         // cost 55% zoo to get a silver chest
         IERC20(playToken).transferFrom(msg.sender, address(this), ticket);
         // burn 50%
-        IZooToken(playToken).burn(ticket.div(2));
+        IZooTokenBurn(playToken).burn(ticket.div(2));
         
         roundInfo[roundId].jackpot = roundInfo[roundId].jackpot.add(ticket.div(2));
     }
@@ -220,7 +491,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         // cost 55% zoo to get a silver chest
         IERC20(playToken).transferFrom(msg.sender, address(this), ticket);
         // burn 50%
-        IZooToken(playToken).burn(ticket.div(2));
+        IZooTokenBurn(playToken).burn(ticket.div(2));
         
         roundInfo[roundId].jackpot = roundInfo[roundId].jackpot.add(ticket.div(2));
         uint boost = 0;
@@ -230,9 +501,11 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         }
 
         if (selection == 1) {
+            leftUser[roundId][roundInfo[roundId].leftUserCount] = msg.sender;
             roundInfo[roundId].leftUserCount++;
             roundInfo[roundId].leftPower = roundInfo[roundId].leftPower.add(personPower.mul(POWER_SCALE)).add(tokenId);
         } else {
+            rightUser[roundId][roundInfo[roundId].rightUserCount] = msg.sender;
             roundInfo[roundId].rightUserCount++;
             roundInfo[roundId].rightPower = roundInfo[roundId].rightPower.add(personPower.mul(POWER_SCALE)).add(tokenId);
         }
@@ -267,51 +540,94 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         return 5;
     }
 
-    // return values: 
-    // status: 0: pause, 1: betting, 2: waiting, 3: fighting, 4: waitingJackpot
-    // function getRoundInfo(uint roundId) public view 
-    //     returns(
-    //         uint status,
-    //         uint jackpot,
-    //         uint leftUserCount,
-    //         uint leftNftCount,
-    //         uint leftPower,
-    //         uint[] memory leftLife,
-    //         uint rightUserCount,
-    //         uint rightNftCount,
-    //         uint rightPower,
-    //         uint[] memory rightLife,
-    //         uint[] memory eventResult,
-    //         address[] memory jackpotResult
-    //     ) {
-    // }
+    function openGoldenChest(address user) private {
+        uint tokenId;
+        uint level;
+        uint category;
+        uint item;
+        uint random;
+        (tokenId, level, category, item, random) = randomNFT(true);
 
-    // TODO: NEED MODIFY
-    // function randomNFT(bool golden) private view returns (uint tokenId, uint level, uint category, uint item, uint random) {
-    //     uint totalSupply = IZooNFTMint(zooNFT).totalSupply();
-    //     tokenId = totalSupply + 1;
-    //     uint random1 = uint(keccak256(abi.encode(tokenId, msg.sender, blockhash(block.number - 1), block.coinbase, block.timestamp, _foundationSeed)));
-    //     uint random2 = uint(keccak256(abi.encode(random1)));
-    //     uint random3 = uint(keccak256(abi.encode(random2)));
-    //     uint random4 = uint(keccak256(abi.encode(random3)));
-    //     uint random5 = uint(keccak256(abi.encode(random4)));
+        IZooNFTChest(zooNFT).mint(tokenId, level, category, item, random);
+        IERC721(zooNFT).safeTransferFrom(address(this), user, tokenId);
 
-    //     // mod 100 -> 96 is used for fix the total chance is 96% not 100% issue.
-    //     level = getMaskValue(random5.mod(96), LEVEL_MASK) + 1;
-    //     category = getMaskValue(random4.mod(100), CATEGORY_MASK) + 1;
-    //     if (golden) {
-    //         item = getMaskValue(random3.mod(100), ITEM_MASK) + 1;
-    //     } else {
-    //         item = getMaskValue(random2.mod(85), ITEM_MASK) + 1;
-    //     }
-    //     random = random1.mod(maxNFTRandom) + 1;
-    // }
+        uint itemSupply = IZooNFTChest(zooNFT).itemSupply(level, category, item);
+        emit MintNFT(level, category, item, random, tokenId, itemSupply, user);
+    }
 
-    // function getMaskValue(uint random, uint[] memory mask) private pure returns (uint) {
-    //     for (uint i=0; i<mask.length; i++) {
-    //         if (random < mask[i]) {
-    //             return i;
-    //         }
-    //     }
-    // }
+    function openSilverChest(address user) private {
+        bool success = false;
+        if (emptyTimes[user] >= 9) {
+            success = true;
+        } else {
+            success = isSilverSuccess();
+        }
+
+        if (!success) {
+            emptyTimes[user]++;
+            emit MintNFT(0, 0, 0, 0, 0, 0, user);
+            return;
+        }
+
+        emptyTimes[user] = 0;
+
+        uint tokenId;
+        uint level;
+        uint category;
+        uint item;
+        uint random;
+        (tokenId, level, category, item, random) = randomNFT(false);
+
+        IZooNFTChest(zooNFT).mint(tokenId, level, category, item, random);
+        IERC721(zooNFT).safeTransferFrom(address(this), user, tokenId);
+        uint itemSupply = IZooNFTChest(zooNFT).itemSupply(level, category, item);
+        emit MintNFT(level, category, item, random, tokenId, itemSupply, user);
+    }
+
+    function isSilverSuccess() private returns (bool) {
+        uint totalSupply = IZooNFTChest(zooNFT).totalSupply();
+        uint random1 = uint(keccak256(abi.encode(msg.sender, blockhash(block.number - 1), block.coinbase, block.timestamp, totalSupply, getRandomSeed())));
+        uint random2 = uint(keccak256(abi.encode(random1)));
+        uint random3 = uint(keccak256(abi.encode(random2)));
+        if (random2.mod(1000).add(random3.mod(1000)).mod(10) == 8) {
+            return true;
+        }
+        return false;
+    } 
+
+    function randomNFT(bool golden) private returns (uint tokenId, uint level, uint category, uint item, uint random) {
+        uint totalSupply = IZooNFTChest(zooNFT).totalSupply();
+        tokenId = totalSupply + 1;
+        uint random1 = uint(keccak256(abi.encode(tokenId, msg.sender, blockhash(block.number - 2), block.coinbase, block.timestamp, getRandomSeed())));
+        uint random2 = uint(keccak256(abi.encode(random1)));
+        uint random3 = uint(keccak256(abi.encode(random2)));
+        uint random4 = uint(keccak256(abi.encode(random3)));
+        uint random5 = uint(keccak256(abi.encode(random4)));
+
+        // mod 100 -> 96 is used for fix the total chance is 96% not 100% issue.
+        level = getMaskValue(random5.mod(96), LEVEL_MASK) + 1;
+        category = getMaskValue(random4.mod(100), CATEGORY_MASK) + 1;
+        if (golden) {
+            item = getMaskValue(random3.mod(100), ITEM_MASK) + 1;
+        } else {
+            item = getMaskValue(random2.mod(85), ITEM_MASK) + 1;
+        }
+        random = random1.mod(300) + 1;
+    }
+
+    function getMaskValue(uint random, uint[] memory mask) private pure returns (uint) {
+        for (uint i=0; i<mask.length; i++) {
+            if (random < mask[i]) {
+                return i;
+            }
+        }
+    }
+
+    function getRandomSeed() internal returns (uint) {
+        uint count = getRoleMemberCount(ORACLE_ROLE);
+        require(count >= 1, "no private oracle found");
+        address privateOracle = getRoleMember(ORACLE_ROLE, count-1);
+        IPrivateSeedOracle(privateOracle).inputSeed(block.timestamp);
+        return _foundationSeed;
+    }
 }

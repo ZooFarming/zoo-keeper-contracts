@@ -225,7 +225,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         }
 
         uint eventRunBlock = startBlock + (eventId*2 - 1) * eventBlock;
-        uint random = uint(keccak256(abi.encode(eventRunBlock, eventRunBlock * 66, randomSeed, block.coinbase, block.timestamp)));
+        uint random = uint(keccak256(abi.encode(eventRunBlock, eventRunBlock * 66, randomSeed)));
         uint opCnt = eventOptions[eventId];
         return random.mod(opCnt).add(1); 
     }
@@ -246,7 +246,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         }
 
         uint fightBlock = startBlock + (reportId*2) * eventBlock;
-        uint random = uint(keccak256(abi.encode(fightBlock, fightBlock * 55, randomSeed, block.coinbase, block.timestamp)));
+        uint random = uint(keccak256(abi.encode(fightBlock, fightBlock * 55, randomSeed)));
         uint leftPower = roundInfo[roundId].leftPower;
         uint rightPower = roundInfo[roundId].rightPower;
         uint winnerCode = random.mod(leftPower.add(rightPower));

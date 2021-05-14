@@ -54,9 +54,6 @@ contract ZoorenaStorage {
     // user address => deposited tokenId
     mapping(address => uint) public userNft;
 
-    // jackpot: roundId => index(0~2) => user address
-    mapping(uint => mapping(uint => address)) public jackpotResult;
-
     // eventId(1~8) => options count
     mapping(uint => uint) public eventOptions;
 

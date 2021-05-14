@@ -21,15 +21,12 @@ interface IZooTokenBurn {
     function burn(uint256 _amount) external;
 }
 
-interface IZooNFTChest {
-    function mint(uint tokenId, uint _level, uint _category, uint _item, uint _random) external;
-    function totalSupply() external view returns (uint);
-    function itemSupply(uint _level, uint _category, uint _item) external view returns (uint);
-}
-
 interface IZooNFTBoost {
     // scaled 1e12
     function getBoosting(uint _tokenId) external view returns (uint);
+    function mint(uint tokenId, uint _level, uint _category, uint _item, uint _random) external;
+    function totalSupply() external view returns (uint);
+    function itemSupply(uint _level, uint _category, uint _item) external view returns (uint);
 }
 
 interface IPrivateSeedOracle {
@@ -43,7 +40,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
 
-    // scale of power point
+    // scale of power point, 10000 point = 10000e10
     uint public constant POWER_SCALE = 1e10;
 
     bytes32 public constant ROBOT_ROLE = keccak256("ROBOT_ROLE");
@@ -548,10 +545,10 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         uint random;
         (tokenId, level, category, item, random) = randomNFT(true);
 
-        IZooNFTChest(zooNFT).mint(tokenId, level, category, item, random);
+        IZooNFTBoost(zooNFT).mint(tokenId, level, category, item, random);
         IERC721(zooNFT).safeTransferFrom(address(this), user, tokenId);
 
-        uint itemSupply = IZooNFTChest(zooNFT).itemSupply(level, category, item);
+        uint itemSupply = IZooNFTBoost(zooNFT).itemSupply(level, category, item);
         emit MintNFT(level, category, item, random, tokenId, itemSupply, user);
     }
 
@@ -578,14 +575,14 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         uint random;
         (tokenId, level, category, item, random) = randomNFT(false);
 
-        IZooNFTChest(zooNFT).mint(tokenId, level, category, item, random);
+        IZooNFTBoost(zooNFT).mint(tokenId, level, category, item, random);
         IERC721(zooNFT).safeTransferFrom(address(this), user, tokenId);
-        uint itemSupply = IZooNFTChest(zooNFT).itemSupply(level, category, item);
+        uint itemSupply = IZooNFTBoost(zooNFT).itemSupply(level, category, item);
         emit MintNFT(level, category, item, random, tokenId, itemSupply, user);
     }
 
     function isSilverSuccess() private returns (bool) {
-        uint totalSupply = IZooNFTChest(zooNFT).totalSupply();
+        uint totalSupply = IZooNFTBoost(zooNFT).totalSupply();
         uint random1 = uint(keccak256(abi.encode(msg.sender, blockhash(block.number - 1), block.coinbase, block.timestamp, totalSupply, getRandomSeed())));
         uint random2 = uint(keccak256(abi.encode(random1)));
         uint random3 = uint(keccak256(abi.encode(random2)));
@@ -596,7 +593,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
     } 
 
     function randomNFT(bool golden) private returns (uint tokenId, uint level, uint category, uint item, uint random) {
-        uint totalSupply = IZooNFTChest(zooNFT).totalSupply();
+        uint totalSupply = IZooNFTBoost(zooNFT).totalSupply();
         tokenId = totalSupply + 1;
         uint random1 = uint(keccak256(abi.encode(tokenId, msg.sender, blockhash(block.number - 2), block.coinbase, block.timestamp, getRandomSeed())));
         uint random2 = uint(keccak256(abi.encode(random1)));

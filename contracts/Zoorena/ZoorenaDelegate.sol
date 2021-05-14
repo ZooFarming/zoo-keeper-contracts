@@ -62,7 +62,9 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
     event MintNFT(uint indexed level, uint indexed category, uint indexed item, uint random, uint tokenId, uint itemSupply, address user);
 
-    event ClaimJackpot(address indexed user, uint indexed amount);
+    event ClaimEvent(address indexed user, uint indexed roundId, uint indexed eventId);
+
+    event ClaimJackpot(address indexed user, uint indexed roundId, uint indexed amount);
 
     function initialize(address admin, address _playToken, address _nftFactory, address _zooNFT) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
@@ -326,6 +328,8 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         } else {
             openSilverChest(user);
         }
+
+        emit ClaimEvent(user, roundId, eventId);
     }
 
     function getJackpot(uint roundId) public view returns(bool done, address[] memory winners) {
@@ -449,7 +453,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         uint amount = balance.div(3);
 
         IERC20(playToken).transfer(user, amount);
-        emit ClaimJackpot(user, amount);
+        emit ClaimJackpot(user, roundId, amount);
     }
 
     function currentRoundId() public view returns(uint) {

@@ -130,6 +130,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
     function bet(uint eventId, uint selection) external {
         require(tx.origin == msg.sender, "not allow contract call");
+        require(!pause, "game paused");
         require(selection != 0 && selection != 100, "selection error");
         require(eventId < 9, "event Id error");
         require(getStatus() == 1, "betting closed");
@@ -151,6 +152,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
     // side: left:1, right:2
     function depositNFT(uint side, uint tokenId) external {
         require(tx.origin == msg.sender, "not allow contract call");
+        require(!pause, "game paused");
         require(getStatus() == 1, "betting closed");
         require(side >=1 && side <= 2, "side error");
         require(tokenId != 0, "NFT error");
@@ -170,6 +172,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
     function withdrawNFT() external {
         require(tx.origin == msg.sender, "not allow contract call");
+        require(!pause, "game paused");
         require(getStatus() == 1, "betting closed");
         uint roundId = currentRoundId();
         uint tokenId = userNft[msg.sender];
@@ -191,6 +194,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
     function fightStart(uint roundId, uint fightStartBlock) external {
         require(hasRole(ROBOT_ROLE, msg.sender));
+        require(!pause, "game paused");
         
         roundInfo[roundId].fightStartBlock = fightStartBlock;
 
@@ -300,6 +304,8 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
     function claimEvent(uint roundId, uint eventId, address user) external {
         require(tx.origin == msg.sender, "not allow contract call");
+        require(!pause, "game paused");
+
         uint userSelection = userEvent[roundId][msg.sender][eventId];
         require(userSelection > 0, "User not bet");
         bool golden = false;
@@ -431,6 +437,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
     function claimJackpot(uint roundId, address user) external {
         require(tx.origin == msg.sender, "not allow contract call");
+        require(!pause, "game paused");
         bool done;
         address[] memory winners;
         (done, winners) = getJackpot(roundId);
@@ -447,6 +454,35 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
     function currentRoundId() public view returns(uint) {
         return (block.timestamp - baseTime) / roundTime;
+    }
+
+    // status: 0: pause, 1: betting, 2: waiting, 3: fighting, 4: waitingJackpot, 5: end
+    function getStatus() public view returns (uint) {
+        if (pause || block.timestamp < baseTime) {
+            return 0;
+        }
+
+        uint pastTime = block.timestamp - baseTime;
+        uint roundId = currentRoundId();
+        uint roundStart = roundId * roundTime;
+        if ( (pastTime - roundStart) < closeTime ) {
+            return 1;
+        }
+
+        if (block.number < roundInfo[roundId].fightStartBlock) {
+            return 2;
+        }
+
+        if (block.number < (roundInfo[roundId].fightStartBlock + eventBlock * (eventCount * 2 - 1))) {
+            return 3;
+        }
+
+        uint posRandom = IPosRandom(POS_RANDOM_ADDRESS).getRandomNumberByEpochId(block.timestamp / 3600 / 24 + 1);
+        if (posRandom == 0) {
+            return 4;
+        }
+
+        return 5;
     }
 
     function betEvent(uint eventId, uint selection, uint roundId) internal {
@@ -506,35 +542,6 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
             roundInfo[roundId].rightUserCount++;
             roundInfo[roundId].rightPower = roundInfo[roundId].rightPower.add(personPower.mul(POWER_SCALE)).add(tokenId);
         }
-    }
-
-    // status: 0: pause, 1: betting, 2: waiting, 3: fighting, 4: waitingJackpot, 5: end
-    function getStatus() public view returns (uint) {
-        if (pause || block.timestamp < baseTime) {
-            return 0;
-        }
-
-        uint pastTime = block.timestamp - baseTime;
-        uint roundId = currentRoundId();
-        uint roundStart = roundId * roundTime;
-        if ( (pastTime - roundStart) < closeTime ) {
-            return 1;
-        }
-
-        if (block.number < roundInfo[roundId].fightStartBlock) {
-            return 2;
-        }
-
-        if (block.number < (roundInfo[roundId].fightStartBlock + eventBlock * (eventCount * 2 - 1))) {
-            return 3;
-        }
-
-        uint posRandom = IPosRandom(POS_RANDOM_ADDRESS).getRandomNumberByEpochId(block.timestamp / 3600 / 24 + 1);
-        if (posRandom == 0) {
-            return 4;
-        }
-
-        return 5;
     }
 
     function openGoldenChest(address user) private {

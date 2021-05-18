@@ -61,6 +61,11 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
         require(hasRole(ZOO_FARMING_ROLE, msg.sender));
         require(_lockTime <= maxLockDays, "lock time too large");
 
+        // emergency for FNX
+        if (_pid == 4) {
+            require(_lockTime == 0, "FNX can not lock anymore");
+        }
+
         UserInfo storage info = userInfo[_pid][_user];
 
         if (_lockTime > info.lockTime || checkWithdraw(_pid, _user)) {
@@ -94,6 +99,11 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
     }
 
     function checkWithdraw(uint _pid, address _user) public view returns (bool) {
+        // emergency for FNX
+        if (_pid == 4) {
+            return true;
+        }
+
         return block.timestamp >= getExpirationTime(_pid, _user);
     }
 

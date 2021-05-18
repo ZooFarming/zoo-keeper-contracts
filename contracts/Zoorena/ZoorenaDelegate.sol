@@ -66,6 +66,8 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
     event ClaimJackpot(address indexed user, uint indexed roundId, uint indexed amount);
 
+    event AddTicket(uint indexed roundId, address indexed user, uint indexed side, uint ticket);
+
     function initialize(address admin, address _playToken, address _nftFactory, address _zooNFT) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
         _setRoleAdmin(ROBOT_ROLE, DEFAULT_ADMIN_ROLE);
@@ -502,19 +504,25 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         userEvent[roundId][msg.sender][eventId] = selection;
         uint goldenPrice = INftFactory(nftFactory).queryGoldenPrice();
         uint silverPrice = goldenPrice.div(10);
-        uint ticket;
+        uint bet;
         if (golden) {
-            ticket = goldenPrice.div(eventOptions[eventId]).add(goldenPrice.div(20));
+            bet = goldenPrice.div(eventOptions[eventId]).add(goldenPrice.div(20));
         } else {
-            ticket = silverPrice.div(eventOptions[eventId]).add(silverPrice.div(20));
+            bet = silverPrice.div(eventOptions[eventId]).add(silverPrice.div(20));
         }
 
         // cost 55% zoo to get a silver chest
-        IERC20(playToken).transferFrom(msg.sender, address(this), ticket);
+        IERC20(playToken).transferFrom(msg.sender, address(this), bet);
         // burn 50%
-        IZooTokenBurn(playToken).burn(ticket.div(2));
+        IZooTokenBurn(playToken).burn(bet.div(2));
         
-        roundInfo[roundId].jackpot = roundInfo[roundId].jackpot.add(ticket.div(2));
+        roundInfo[roundId].jackpot = roundInfo[roundId].jackpot.add(bet.div(2));
+
+        if (golden) {
+            addTicket(roundId, userEvent[roundId][msg.sender][0], msg.sender, 10);
+        } else {
+            addTicket(roundId, userEvent[roundId][msg.sender][0], msg.sender, 1);
+        }
     }
 
     function joinClan(uint eventId, uint selection, uint roundId) internal {
@@ -546,6 +554,8 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
             roundInfo[roundId].rightUserCount++;
             roundInfo[roundId].rightPower = roundInfo[roundId].rightPower.add(personPower.mul(POWER_SCALE)).add(tokenId);
         }
+
+        addTicket(roundId, selection, msg.sender, 1);
     }
 
     function openGoldenChest(address user) private {
@@ -637,5 +647,27 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         address privateOracle = getRoleMember(ORACLE_ROLE, count-1);
         IPrivateSeedOracle(privateOracle).inputSeed(block.timestamp);
         return _foundationSeed;
+    }
+
+    function addTicket(uint roundId, uint side, address user, uint count) private {
+        uint currentCount;
+        uint ticket;
+        for (uint i=0; i<count; i++) {
+            if (side == 1) {
+                currentCount = leftTicketCount[roundId];
+                // roundId * 1e6 + side * 1e5 + count
+                ticket = roundId.mul(1e6).add(side.mul(1e5)).add(currentCount+i);
+                leftTickets[roundId][currentCount+i] = ticket;
+                leftTicketCount[roundId]++;
+            } else {
+                currentCount = rightTicketCount[roundId];
+                // roundId * 1e6 + side * 1e5 + count
+                ticket = roundId.mul(1e6).add(side.mul(1e5)).add(currentCount+i);
+                rightTickets[roundId][currentCount+i] = ticket;
+                rightTicketCount[roundId]++;
+            }
+
+            emit AddTicket(roundId, user, side, ticket);
+        }
     }
 }

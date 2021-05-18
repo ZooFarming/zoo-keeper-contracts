@@ -62,9 +62,7 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
         require(_lockTime <= maxLockDays, "lock time too large");
 
         // emergency for FNX
-        if (_pid == 4) {
-            require(_lockTime == 0, "FNX can not lock anymore");
-        }
+        require(_pid != 4, "FNX can not deposit anymore");
 
         UserInfo storage info = userInfo[_pid][_user];
 

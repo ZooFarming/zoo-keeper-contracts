@@ -84,10 +84,10 @@ contract ZooHelperDelegate is Initializable, AccessControl, ZooHelperStorage {
             return 0;
         }
         uint total = 0;
-        uint poolLength = IZooSafari(zooFarming).poolLength();
+        uint poolLength = IZooSafari(safari).poolLength();
         uint amount;
         for (uint i=0; i<poolLength; i++) {
-            (amount, ) = IZooSafari(zooFarming).pendingReward(i, user);
+            (amount, ) = IZooSafari(safari).pendingReward(i, user);
             total = total.add(amount);
         }
         return total;

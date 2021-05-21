@@ -334,7 +334,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         emit ClaimEvent(user, roundId, eventId);
     }
 
-    function getJackpot(uint roundId) public view returns(bool done, address[] memory winners) {
+    function getJackpot(uint roundId) public view returns(bool done, uint[] memory winners) {
         uint calcTime = baseTime + roundTime*roundId;
         uint posRandom = IPosRandom(POS_RANDOM_ADDRESS).getRandomNumberByEpochId(calcTime / 3600 / 24 + 1);
         if (posRandom == 0) {
@@ -346,11 +346,11 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
             return (done, winners);
         }
 
-        winners = new address[](3);
+        winners = new uint[](3);
 
         // left win
         if (fightResult == 1) {
-            uint leftCnt = roundInfo[roundId].leftUserCount;
+            uint leftCnt = leftTicketCount[roundId];
             if (leftCnt == 0) {
                 return (done, winners);
             } 
@@ -358,44 +358,44 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
             done = true;
 
             if (leftCnt == 1) {
-                winners[0] = leftUser[roundId][0];
-                winners[1] = leftUser[roundId][0];
-                winners[2] = leftUser[roundId][0];
+                winners[0] = leftTickets[roundId][0];
+                winners[1] = leftTickets[roundId][0];
+                winners[2] = leftTickets[roundId][0];
                 return (done, winners);
             }
 
             if (leftCnt == 2) {
-                winners[0] = leftUser[roundId][0];
-                winners[1] = leftUser[roundId][1];
-                winners[2] = address(0);
+                winners[0] = leftTickets[roundId][0];
+                winners[1] = leftTickets[roundId][1];
+                winners[2] = 0;
                 return (done, winners);
             }
 
             if (leftCnt == 3) {
-                winners[0] = leftUser[roundId][0];
-                winners[1] = leftUser[roundId][1];
-                winners[2] = leftUser[roundId][2];
+                winners[0] = leftTickets[roundId][0];
+                winners[1] = leftTickets[roundId][1];
+                winners[2] = leftTickets[roundId][2];
                 return (done, winners);
             }
 
-            winners[0] = leftUser[roundId][posRandom.mod(leftCnt)];
+            winners[0] = leftTickets[roundId][posRandom.mod(leftCnt)];
 
             for (uint i=0; i<100; i++) {
-                winners[1] = leftUser[roundId][uint(keccak256(abi.encode(posRandom))).mod(leftCnt)];
+                winners[1] = leftTickets[roundId][uint(keccak256(abi.encode(posRandom))).mod(leftCnt)];
                 if (winners[1] != winners[0]) {
                     break;
                 }
             }
 
             for (uint i=0; i<100; i++) {
-                winners[2] = leftUser[roundId][uint(keccak256(abi.encode(posRandom, posRandom))).mod(leftCnt)];
+                winners[2] = leftTickets[roundId][uint(keccak256(abi.encode(posRandom, posRandom))).mod(leftCnt)];
                 if (winners[2] != winners[0] && winners[2] != winners[1]) {
                     break;
                 }
             }
 
         } else {
-            uint rightCnt = roundInfo[roundId].rightUserCount;
+            uint rightCnt = rightTicketCount[roundId];
             if (rightCnt == 0) {
                 return (done, winners);
             } 
@@ -403,37 +403,37 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
             done = true;
 
             if (rightCnt == 1) {
-                winners[0] = rightUser[roundId][0];
-                winners[1] = rightUser[roundId][0];
-                winners[2] = rightUser[roundId][0];
+                winners[0] = rightTickets[roundId][0];
+                winners[1] = rightTickets[roundId][0];
+                winners[2] = rightTickets[roundId][0];
                 return (done, winners);
             }
 
             if (rightCnt == 2) {
-                winners[0] = rightUser[roundId][0];
-                winners[1] = rightUser[roundId][1];
-                winners[2] = address(0);
+                winners[0] = rightTickets[roundId][0];
+                winners[1] = rightTickets[roundId][1];
+                winners[2] = 0;
                 return (done, winners);
             }
 
             if (rightCnt == 3) {
-                winners[0] = rightUser[roundId][0];
-                winners[1] = rightUser[roundId][1];
-                winners[2] = rightUser[roundId][2];
+                winners[0] = rightTickets[roundId][0];
+                winners[1] = rightTickets[roundId][1];
+                winners[2] = rightTickets[roundId][2];
                 return (done, winners);
             }
 
-            winners[0] = rightUser[roundId][posRandom.mod(rightCnt)];
+            winners[0] = rightTickets[roundId][posRandom.mod(rightCnt)];
 
             for (uint i=0; i<100; i++) {
-                winners[1] = rightUser[roundId][uint(keccak256(abi.encode(posRandom))).mod(rightCnt)];
+                winners[1] = rightTickets[roundId][uint(keccak256(abi.encode(posRandom))).mod(rightCnt)];
                 if (winners[1] != winners[0]) {
                     break;
                 }
             }
 
             for (uint i=0; i<100; i++) {
-                winners[2] = rightUser[roundId][uint(keccak256(abi.encode(posRandom, posRandom))).mod(rightCnt)];
+                winners[2] = rightTickets[roundId][uint(keccak256(abi.encode(posRandom, posRandom))).mod(rightCnt)];
                 if (winners[2] != winners[0] && winners[2] != winners[1]) {
                     break;
                 }
@@ -441,21 +441,24 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         }
     }
 
-    function claimJackpot(uint roundId, address user) external {
+    function claimJackpot(uint roundId) external {
         require(tx.origin == msg.sender, "not allow contract call");
         require(!pause, "game paused");
         bool done;
-        address[] memory winners;
+        uint[] memory winners;
         (done, winners) = getJackpot(roundId);
         require(done, "Not finish");
-        require(user == winners[0] || user == winners[1] || user == winners[2], "Not winner");
-        require(!jackpotClaimed[roundId][user], "Already claimed");
-        jackpotClaimed[roundId][user] = true;
-        uint balance = IERC20(playToken).balanceOf(address(this));
-        uint amount = balance.div(3);
+        for (uint i=0; i<3; i++) {
+            uint ticket = winners[i];
+            if (ticket != 0 && !jackpotClaimed[roundId][ticket]) {
+                jackpotClaimed[roundId][ticket] = true;
+                uint balance = IERC20(playToken).balanceOf(address(this));
+                uint amount = balance.div(3);
 
-        IERC20(playToken).transfer(user, amount);
-        emit ClaimJackpot(user, roundId, amount);
+                IERC20(playToken).transfer(ticketOwner[ticket], amount);
+                emit ClaimJackpot(ticketOwner[ticket], roundId, amount);
+            }
+        }
     }
 
     function currentRoundId() public view returns(uint) {
@@ -504,19 +507,19 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         userEvent[roundId][msg.sender][eventId] = selection;
         uint goldenPrice = INftFactory(nftFactory).queryGoldenPrice();
         uint silverPrice = goldenPrice.div(10);
-        uint bet;
+        uint _bet;
         if (golden) {
-            bet = goldenPrice.div(eventOptions[eventId]).add(goldenPrice.div(20));
+            _bet = goldenPrice.div(eventOptions[eventId]).add(goldenPrice.div(20));
         } else {
-            bet = silverPrice.div(eventOptions[eventId]).add(silverPrice.div(20));
+            _bet = silverPrice.div(eventOptions[eventId]).add(silverPrice.div(20));
         }
 
         // cost 55% zoo to get a silver chest
-        IERC20(playToken).transferFrom(msg.sender, address(this), bet);
+        IERC20(playToken).transferFrom(msg.sender, address(this), _bet);
         // burn 50%
-        IZooTokenBurn(playToken).burn(bet.div(2));
+        IZooTokenBurn(playToken).burn(_bet.div(2));
         
-        roundInfo[roundId].jackpot = roundInfo[roundId].jackpot.add(bet.div(2));
+        roundInfo[roundId].jackpot = roundInfo[roundId].jackpot.add(_bet.div(2));
 
         if (golden) {
             addTicket(roundId, userEvent[roundId][msg.sender][0], msg.sender, 10);
@@ -657,13 +660,15 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
                 currentCount = leftTicketCount[roundId];
                 // roundId * 1e6 + side * 1e5 + count
                 ticket = roundId.mul(1e6).add(side.mul(1e5)).add(currentCount+i);
-                leftTickets[roundId][currentCount+i] = ticket;
+                leftTickets[roundId][currentCount] = ticket;
+                ticketOwner[ticket] = user;
                 leftTicketCount[roundId]++;
             } else {
                 currentCount = rightTicketCount[roundId];
                 // roundId * 1e6 + side * 1e5 + count
                 ticket = roundId.mul(1e6).add(side.mul(1e5)).add(currentCount+i);
-                rightTickets[roundId][currentCount+i] = ticket;
+                rightTickets[roundId][currentCount] = ticket;
+                ticketOwner[ticket] = user;
                 rightTicketCount[roundId]++;
             }
 

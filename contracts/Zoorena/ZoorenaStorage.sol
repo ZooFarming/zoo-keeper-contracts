@@ -71,8 +71,8 @@ contract ZoorenaStorage {
     // roundId => user => eventId => claimed
     mapping(uint => mapping(address => mapping(uint => bool))) public eventClaimed;
 
-    // roundId => user => claimed
-    mapping(uint => mapping(address => bool)) public jackpotClaimed;
+    // roundId => ticket => claimed
+    mapping(uint => mapping(uint => bool)) public jackpotClaimed;
 
     // roundId => index => leftTicket number
     mapping(uint => mapping(uint => uint)) public leftTickets;

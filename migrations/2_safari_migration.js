@@ -13,11 +13,11 @@ module.exports = async function (deployer) {
 
   let deployerAddr = deployer.provider.addresses[0];
   console.log('deployerAddr', deployerAddr);
-  //TODO: TESTNET CONFIG----------
-  let proxyAdmin = '0x5560aF0F46D00FCeA88627a9DF7A4798b1b10961';
-  let admin = '0x4Cf0A877E906DEaD748A41aE7DA8c220E4247D9e';
-  let zooToken = '0x890589dC8BD3F973dcAFcB02b6e1A133A76C8135';
-  let WWAN = '0x916283CC60FDAF05069796466Af164876E35D21F';
+  //TODO:  CONFIG----------
+  let proxyAdmin = '0xa206e4858849f70c3d684e854e7C126EF7baB32e';
+  let admin = '0x83f83439Cc3274714A7dad32898d55D17f7C6611';
+  let zooToken = '0x6e11655d6aB3781C6613db8CB1Bc3deE9a7e111F';
+  let WWAN = '0xdabd997ae5e4799be47d6e69d9431615cba28f48';
   //--------------------
 
   await deployer.deploy(SafariDelegate);
@@ -27,7 +27,7 @@ module.exports = async function (deployer) {
 
   let safari = await SafariDelegate.at((await ZooKeeperProxy.deployed()).address);
   
-  await safari.initialize(admin, WWAN);
+  await safari.initialize(deployerAddr, WWAN);
 
   await safari.grantRole('0x00', admin);
 

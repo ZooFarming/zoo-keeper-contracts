@@ -136,7 +136,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         require(tx.origin == msg.sender, "not allow contract call");
         require(!pause, "game paused");
         require(selection != 0 && selection != 100, "selection error");
-        require(eventId < 9, "event Id error");
+        require(eventId < eventCount, "event Id error");
         require(getStatus() == 1, "betting closed");
 
         uint roundId = currentRoundId();
@@ -279,7 +279,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         uint leftDown;
         uint rightDown;
         bool done = false;
-        for (uint i=0; i<9; i++) {
+        for (uint i=0; i<eventCount; i++) {
             (done, leftDown, rightDown) = getFightingReport(roundId, i);
 
             if (!done) {
@@ -444,6 +444,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
     function claimJackpot(uint roundId) external {
         require(tx.origin == msg.sender, "not allow contract call");
         require(!pause, "game paused");
+        require(roundId <= currentRoundId(), "not arrived");
         bool done;
         uint[] memory winners;
         (done, winners) = getJackpot(roundId);

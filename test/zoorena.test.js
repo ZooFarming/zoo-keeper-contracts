@@ -6,15 +6,18 @@ const TestOracle = artifacts.require('TestOracle');
 const TestPosRandom = artifacts.require('TestPosRandom');
 
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
+const { web3 } = require('@openzeppelin/test-helpers/src/setup');
+
 
 const assert = require('assert');
 const koSleep = require('ko-sleep');
 
 async function shouldFailed(func) {
   try {
-    let ret = await func();
+    let ret = await func;
     assert.fail('never go here');
   } catch (e) {
+    console.log(e);
     assert.ok(e.message.match(/revert/));
   }
 }
@@ -94,10 +97,24 @@ contract("Zoorena", ([alice, lucy, jack, tom, molin, dev, robot]) => {
     await zoorena.bet(8, 1);
   });
 
+  it("should success when call fightStart from robot", async ()=>{
+    await zoorena.configTime(parseInt(Date.now()/1000) + 3, 100, 5, {from: dev});
+    let blockNumber = await web3.eth.getBlockNumber();
+    await zoorena.fightStart(0, blockNumber+3, {from: robot});
+  });
+
+  it("should failed when call fightStart from not robot", async ()=>{
+    await zoorena.configTime(parseInt(Date.now()/1000) + 3, 100, 5, {from: dev});
+    let blockNumber = await web3.eth.getBlockNumber();
+    shouldFailed(zoorena.fightStart(0, blockNumber+3));
+  });
+
   it.only("should failed when bet in closed time", async ()=>{
-    await zoorena.configTime(parseInt(Date.now()/1000), 100, 5, {from: dev});
-    console.log((await zoo.balanceOf(alice)).toString());
-    for (let i=0; i<10; i++) {
+    await zoorena.configTime(parseInt(Date.now()/1000) + 3, 100, 5, {from: dev});
+    let blockNumber = await web3.eth.getBlockNumber();
+    await zoorena.fightStart(0, blockNumber+20, {from: robot});
+    let balance = (await zoo.balanceOf(alice)).toString();
+    for (let i=0; i<30; i++) {
       await koSleep(1000);
       await time.advanceBlock();
       console.log((await zoorena.getStatus()).toString());
@@ -112,7 +129,7 @@ contract("Zoorena", ([alice, lucy, jack, tom, molin, dev, robot]) => {
     shouldFailed(zoorena.bet(6, 1));
     shouldFailed(zoorena.bet(7, 1));
     shouldFailed(zoorena.bet(8, 1));
-    console.log((await zoo.balanceOf(alice)).toString());
+    assert.strictEqual(balance, (await zoo.balanceOf(alice)).toString());
   });
 
 });

@@ -3,6 +3,7 @@ const ZooToken = artifacts.require('ZooToken');
 const ZooNFT = artifacts.require('ZooNFT');
 const ZoorenaDelegate = artifacts.require('ZoorenaDelegate');
 const TestOracle = artifacts.require('TestOracle');
+const TestPosRandom = artifacts.require('TestPosRandom');
 
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
 
@@ -37,8 +38,9 @@ contract("Zoorena", ([alice, lucy, jack, tom, molin, dev, robot]) => {
     await nftFactory.initialize(dev, zoo.address, nft.address);
     await nft.setNFTFactory(nftFactory.address, {from: dev});
 
+    let posRandom = await TestPosRandom.new();
     zoorena = await ZoorenaDelegate.new();
-    await zoorena.initialize(dev, zoo.address, nftFactory.address, nft.address);
+    await zoorena.initialize(dev, zoo.address, nftFactory.address, nft.address, posRandom.address);
     await nft.setNFTFactory(zoorena.address, {from: dev});
     
     zoo.approve(zoorena.address, '10000000000000000', {from: alice});
@@ -92,7 +94,7 @@ contract("Zoorena", ([alice, lucy, jack, tom, molin, dev, robot]) => {
     await zoorena.bet(8, 1);
   });
 
-  it.only("should success when bet in closed time", async ()=>{
+  it.only("should failed when bet in closed time", async ()=>{
     await zoorena.configTime(parseInt(Date.now()/1000), 100, 5, {from: dev});
     console.log((await zoo.balanceOf(alice)).toString());
     for (let i=0; i<10; i++) {
@@ -100,6 +102,7 @@ contract("Zoorena", ([alice, lucy, jack, tom, molin, dev, robot]) => {
       await time.advanceBlock();
       console.log((await zoorena.getStatus()).toString());
     }
+
     shouldFailed(zoorena.bet(0, 1));
     shouldFailed(zoorena.bet(1, 1));
     shouldFailed(zoorena.bet(2, 1));

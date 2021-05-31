@@ -84,4 +84,7 @@ contract ZoorenaStorage {
 
     // ticket number => user address
     mapping(uint => address) public ticketOwner;
+
+    // pos random contract address
+    address public POS_RANDOM_ADDRESS;
 }

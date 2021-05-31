@@ -35,9 +35,6 @@ interface IPrivateSeedOracle {
 
 contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaStorage {
     
-    // pos random contract address
-    address public constant POS_RANDOM_ADDRESS = address(0x262);
-
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
 
     // scale of power point, 10000 point = 10000e10
@@ -68,13 +65,15 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
     event AddTicket(uint indexed roundId, address indexed user, uint indexed side, uint ticket);
 
-    function initialize(address admin, address _playToken, address _nftFactory, address _zooNFT) public payable initializer {
+    // _posRandomSC should be address(0x262)
+    function initialize(address admin, address _playToken, address _nftFactory, address _zooNFT, address _posRandomSC) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
         _setRoleAdmin(ROBOT_ROLE, DEFAULT_ADMIN_ROLE);
 
         playToken = _playToken;
         nftFactory = _nftFactory;
         zooNFT = _zooNFT;
+        POS_RANDOM_ADDRESS = _posRandomSC;
 
         // 60%, 30%, 5%, 1%
         LEVEL_MASK.push(60);

@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 
-import "./NFTFactoryStorageV2.sol";
+import "./NFTFactoryStorageV3.sol";
 
 interface IZooToken {
     function burn(uint256 _amount) external;
@@ -26,7 +26,7 @@ interface IPrivateOracle {
 }
 
 // NFTFactory
-contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFactoryStorageV2 {
+contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFactoryStorageV3 {
     using SafeERC20 for IERC20;
 
     event MintNFT(uint indexed level, uint indexed category, uint indexed item, uint random, uint tokenId, uint itemSupply);
@@ -38,6 +38,8 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
     event ZooStake(address indexed user, uint price, uint _type);
 
     event ZooClaim(address indexed user, uint price, uint _type, uint tokenId);
+
+    event MintFinish(address indexed user);
 
     function initialize(address admin, address _zooToken, address _zooNFT) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
@@ -158,19 +160,8 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
 
         IERC20(zooToken).transferFrom(msg.sender, address(this), currentPrice);
         IZooToken(zooToken).burn(currentPrice);
-        uint tokenId;
-        uint level;
-        uint category;
-        uint item;
-        uint random;
-        (tokenId, level, category, item, random) = randomNFT(true);
-
-        IZooNFTMint(zooNFT).mint(tokenId, level, category, item, random);
-        IERC721(zooNFT).safeTransferFrom(address(this), msg.sender, tokenId);
-
-        uint itemSupply = IZooNFTMint(zooNFT).itemSupply(level, category, item);
-        emit MintNFT(level, category, item, random, tokenId, itemSupply);
-        emit GoldenBuy(msg.sender, currentPrice);
+        
+        requestMint(true, currentPrice);
     }
 
     function buySilverChest() public {
@@ -186,34 +177,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         IERC20(zooToken).transferFrom(msg.sender, address(this), currentPrice);
         IZooToken(zooToken).burn(currentPrice);
 
-        bool success = false;
-        if (emptyTimes[msg.sender] >= 9) {
-            success = true;
-        } else {
-            success = isSilverSuccess();
-        }
-
-        emit SilverBuy(msg.sender, currentPrice);
-
-        if (!success) {
-            emptyTimes[msg.sender]++;
-            emit MintNFT(0, 0, 0, 0, 0, 0);
-            return;
-        }
-
-        emptyTimes[msg.sender] = 0;
-
-        uint tokenId;
-        uint level;
-        uint category;
-        uint item;
-        uint random;
-        (tokenId, level, category, item, random) = randomNFT(false);
-
-        IZooNFTMint(zooNFT).mint(tokenId, level, category, item, random);
-        IERC721(zooNFT).safeTransferFrom(address(this), msg.sender, tokenId);
-        uint itemSupply = IZooNFTMint(zooNFT).itemSupply(level, category, item);
-        emit MintNFT(level, category, item, random, tokenId, itemSupply);
+        requestMint(false, currentPrice);
     }
 
     function queryGoldenPrice() public view returns (uint) {
@@ -292,24 +256,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         delete stakeInfo[msg.sender][_type];
 
         //mint NFT
-        uint tokenId;
-        uint level;
-        uint category;
-        uint item;
-        uint random;
-        (tokenId, level, category, item, random) = randomNFT(true);
-
-        IZooNFTMint(zooNFT).mint(tokenId, level, category, item, random);
-        IERC721(zooNFT).safeTransferFrom(address(this), msg.sender, tokenId);
-        
-        uint itemSupply = IZooNFTMint(zooNFT).itemSupply(level, category, item);
-        emit MintNFT(level, category, item, random, tokenId, itemSupply);
-
-        IERC20(zooToken).safeTransfer(msg.sender, amount);
-
-        stakedAmount[_type] = stakedAmount[_type].sub(amount);
-
-        emit ZooClaim(msg.sender, amount, _type, tokenId);
+        requestMint(true, amount);
     }
 
     function isStakeFinished(uint _type) public view returns (bool) {
@@ -342,10 +289,10 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         random = random1.mod(maxNFTRandom) + 1;
     }
 
-    function randomNFT(bool golden) private returns (uint tokenId, uint level, uint category, uint item, uint random) {
+    function randomNFT(address user, bool golden) private returns (uint tokenId, uint level, uint category, uint item, uint random) {
         uint totalSupply = IZooNFTMint(zooNFT).totalSupply();
         tokenId = totalSupply + 1;
-        uint random1 = uint(keccak256(abi.encode(tokenId, msg.sender, blockhash(block.number - 1), block.coinbase, block.timestamp, getRandomSeed())));
+        uint random1 = uint(keccak256(abi.encode(tokenId, user, blockhash(block.number - 1), block.coinbase, block.timestamp, getRandomSeed())));
         uint random2 = uint(keccak256(abi.encode(random1)));
         uint random3 = uint(keccak256(abi.encode(random2)));
         uint random4 = uint(keccak256(abi.encode(random3)));
@@ -371,10 +318,84 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
     }
 
     function getRandomSeed() internal returns (uint) {
-        uint count = getRoleMemberCount(ORACLE_ROLE);
-        require(count >= 1, "no private oracle found");
-        address privateOracle = getRoleMember(ORACLE_ROLE, count-1);
-        IPrivateOracle(privateOracle).inputSeed(1);
         return _foundationSeed;
+    }
+
+    function openGoldenChest(address user, uint price) internal {
+        uint tokenId;
+        uint level;
+        uint category;
+        uint item;
+        uint random;
+        (tokenId, level, category, item, random) = randomNFT(user, true);
+
+        IZooNFTMint(zooNFT).mint(tokenId, level, category, item, random);
+        IERC721(zooNFT).safeTransferFrom(address(this), user, tokenId);
+
+        uint itemSupply = IZooNFTMint(zooNFT).itemSupply(level, category, item);
+        emit MintNFT(level, category, item, random, tokenId, itemSupply);
+        emit GoldenBuy(user, price);
+    }
+
+    function openSilverChest(address user, uint price) internal {
+        bool success = false;
+        if (emptyTimes[user] >= 9) {
+            success = true;
+        } else {
+            success = isSilverSuccess();
+        }
+
+        emit SilverBuy(user, price);
+
+        if (!success) {
+            emptyTimes[user]++;
+            emit MintNFT(0, 0, 0, 0, 0, 0);
+            return;
+        }
+
+        emptyTimes[user] = 0;
+
+        uint tokenId;
+        uint level;
+        uint category;
+        uint item;
+        uint random;
+        (tokenId, level, category, item, random) = randomNFT(user, false);
+
+        IZooNFTMint(zooNFT).mint(tokenId, level, category, item, random);
+        IERC721(zooNFT).safeTransferFrom(address(this), user, tokenId);
+        uint itemSupply = IZooNFTMint(zooNFT).itemSupply(level, category, item);
+        emit MintNFT(level, category, item, random, tokenId, itemSupply);
+    }
+
+    function requestMint(bool golden, uint _price) internal {
+        mintRequestInfo[currentRequestCount].user = msg.sender;
+        mintRequestInfo[currentRequestCount].price = _price;
+        mintRequestInfo[currentRequestCount].golden = golden;
+        currentRequestCount = currentRequestCount.add(1);
+    }
+
+    // for robot to get current waiting mint count
+    function getWaitingMintCount() public view returns (uint) {
+        if (currentRequestCount > doneRequestCount) {
+            return currentRequestCount - doneRequestCount;
+        }
+        return 0;
+    }
+
+    function agentMint(uint _seed) external {
+        require(getWaitingMintCount() > 0, "no mint request");
+        require(hasRole(ORACLE_ROLE, msg.sender));
+        _foundationSeed = _seed;
+
+        uint i = doneRequestCount;
+        if (mintRequestInfo[i].golden) {
+            openGoldenChest(mintRequestInfo[i].user, mintRequestInfo[i].price);
+        } else {
+            openSilverChest(mintRequestInfo[i].user, mintRequestInfo[i].price);
+        }
+
+        doneRequestCount = doneRequestCount.add(1);
+        emit MintFinish(mintRequestInfo[i].user);
     }
 }

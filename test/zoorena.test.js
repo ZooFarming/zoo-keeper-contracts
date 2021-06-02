@@ -17,7 +17,6 @@ async function shouldFailed(func) {
     let ret = await func;
     assert.fail('never go here');
   } catch (e) {
-    console.log(e);
     assert.ok(e.message.match(/revert/));
   }
 }
@@ -109,7 +108,7 @@ contract("Zoorena", ([alice, lucy, jack, tom, molin, dev, robot]) => {
     shouldFailed(zoorena.fightStart(0, blockNumber+3));
   });
 
-  it.only("should failed when bet in closed time", async ()=>{
+  it("should failed when bet in closed time", async ()=>{
     await zoorena.configTime(parseInt(Date.now()/1000) + 3, 100, 5, {from: dev});
     let blockNumber = await web3.eth.getBlockNumber();
     await zoorena.fightStart(0, blockNumber+20, {from: robot});

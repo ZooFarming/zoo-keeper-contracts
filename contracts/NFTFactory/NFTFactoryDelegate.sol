@@ -257,6 +257,10 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
 
         //mint NFT
         requestMint(true, amount);
+
+        IERC20(zooToken).safeTransfer(msg.sender, amount);
+        stakedAmount[_type] = stakedAmount[_type].sub(amount);
+        // emit ZooClaim(msg.sender, amount, _type, tokenId);
     }
 
     function isStakeFinished(uint _type) public view returns (bool) {

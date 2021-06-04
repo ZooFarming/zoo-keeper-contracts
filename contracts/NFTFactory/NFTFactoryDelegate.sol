@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 
-import "./NFTFactoryStorageV3.sol";
+import "./NFTFactoryStorageV4.sol";
 
 interface IZooToken {
     function burn(uint256 _amount) external;
@@ -26,7 +26,7 @@ interface IPrivateOracle {
 }
 
 // NFTFactory
-contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFactoryStorageV3 {
+contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFactoryStorageV4 {
     using SafeERC20 for IERC20;
 
     event MintNFT(uint indexed level, uint indexed category, uint indexed item, uint random, uint tokenId, uint itemSupply);
@@ -34,6 +34,10 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
     event GoldenBuy(address indexed user, uint price);
     
     event SilverBuy(address indexed user, uint price);
+
+    event SilverClaim(address indexed user, uint price);
+
+    event GoldenClaim(address indexed user, uint price);
 
     event ZooStake(address indexed user, uint price, uint _type);
 
@@ -99,6 +103,11 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         _foundationSeed = uint(keccak256(abi.encode(msg.sender, blockhash(block.number - 1), block.coinbase)));
     }
 
+    function configMinter(address minter) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        grantRole(FACTORY_MINTER_ROLE, minter);
+    }
+
     function inputSeed(uint seed_) external {
         require(hasRole(ORACLE_ROLE, msg.sender));
         _foundationSeed = seed_;
@@ -161,7 +170,8 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         IERC20(zooToken).transferFrom(msg.sender, address(this), currentPrice);
         IZooToken(zooToken).burn(currentPrice);
         
-        requestMint(true, currentPrice);
+        // 0: buy silver, 1: buy golden, 2: golden claim, 3: silver claim
+        requestMint(msg.sender, 1, currentPrice);
     }
 
     function buySilverChest() public {
@@ -177,7 +187,8 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         IERC20(zooToken).transferFrom(msg.sender, address(this), currentPrice);
         IZooToken(zooToken).burn(currentPrice);
 
-        requestMint(false, currentPrice);
+        // 0: buy silver, 1: buy golden, 2: golden claim, 3: silver claim
+        requestMint(msg.sender, 0, currentPrice);
     }
 
     function queryGoldenPrice() public view returns (uint) {
@@ -256,7 +267,8 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         delete stakeInfo[msg.sender][_type];
 
         //mint NFT
-        requestMint(true, amount);
+        // 0: buy silver, 1: buy golden, 2: golden claim, 3: silver claim
+        requestMint(msg.sender, 2, amount);
 
         IERC20(zooToken).safeTransfer(msg.sender, amount);
         stakedAmount[_type] = stakedAmount[_type].sub(amount);
@@ -372,11 +384,63 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         emit MintNFT(level, category, item, random, tokenId, itemSupply);
     }
 
-    function requestMint(bool golden, uint _price) internal {
-        mintRequestInfo[currentRequestCount].user = msg.sender;
-        mintRequestInfo[currentRequestCount].price = _price;
-        mintRequestInfo[currentRequestCount].golden = golden;
+    function claimGoldenChest(address user, uint price) internal {
+        uint tokenId;
+        uint level;
+        uint category;
+        uint item;
+        uint random;
+        (tokenId, level, category, item, random) = randomNFT(user, true);
+
+        IZooNFTMint(zooNFT).mint(tokenId, level, category, item, random);
+        IERC721(zooNFT).safeTransferFrom(address(this), user, tokenId);
+
+        uint itemSupply = IZooNFTMint(zooNFT).itemSupply(level, category, item);
+        emit MintNFT(level, category, item, random, tokenId, itemSupply);
+        emit GoldenClaim(user, price);
+    }
+
+    function claimSilverChest(address user, uint price) internal {
+        bool success = false;
+        if (emptyTimes[user] >= 9) {
+            success = true;
+        } else {
+            success = isSilverSuccess();
+        }
+
+        emit SilverClaim(user, price);
+
+        if (!success) {
+            emptyTimes[user]++;
+            emit MintNFT(0, 0, 0, 0, 0, 0);
+            return;
+        }
+
+        emptyTimes[user] = 0;
+
+        uint tokenId;
+        uint level;
+        uint category;
+        uint item;
+        uint random;
+        (tokenId, level, category, item, random) = randomNFT(user, false);
+
+        IZooNFTMint(zooNFT).mint(tokenId, level, category, item, random);
+        IERC721(zooNFT).safeTransferFrom(address(this), user, tokenId);
+        uint itemSupply = IZooNFTMint(zooNFT).itemSupply(level, category, item);
+        emit MintNFT(level, category, item, random, tokenId, itemSupply);
+    }
+
+    function requestMint(address user, uint chestType, uint _price) internal {
+        mintRequestInfoV2[currentRequestCount].user = user;
+        mintRequestInfoV2[currentRequestCount].price = _price;
+        mintRequestInfoV2[currentRequestCount].chestType = chestType;
         currentRequestCount = currentRequestCount.add(1);
+    }
+
+    function externalRequestMint(address user, uint chestType, uint _price) external {
+        require(hasRole(FACTORY_MINTER_ROLE, msg.sender));
+        requestMint(user, chestType, _price);
     }
 
     // for robot to get current waiting mint count
@@ -393,13 +457,19 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         _foundationSeed = _seed;
 
         uint i = doneRequestCount;
-        if (mintRequestInfo[i].golden) {
-            openGoldenChest(mintRequestInfo[i].user, mintRequestInfo[i].price);
+        
+        // 0: buy silver, 1: buy golden, 2: golden claim, 3: silver claim
+        if (mintRequestInfoV2[i].chestType == 0) {
+            openSilverChest(mintRequestInfoV2[i].user, mintRequestInfoV2[i].price);
+        } else if (mintRequestInfoV2[i].chestType == 1) {
+            openGoldenChest(mintRequestInfoV2[i].user, mintRequestInfoV2[i].price);
+        } else if (mintRequestInfoV2[i].chestType == 2) {
+            claimGoldenChest(mintRequestInfoV2[i].user, mintRequestInfoV2[i].price);
         } else {
-            openSilverChest(mintRequestInfo[i].user, mintRequestInfo[i].price);
+            claimSilverChest(mintRequestInfoV2[i].user, mintRequestInfoV2[i].price);
         }
 
         doneRequestCount = doneRequestCount.add(1);
-        emit MintFinish(mintRequestInfo[i].user);
+        emit MintFinish(mintRequestInfoV2[i].user);
     }
 }

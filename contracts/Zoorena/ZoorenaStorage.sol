@@ -57,17 +57,6 @@ contract ZoorenaStorage {
     // eventId(1~8) => options count
     mapping(uint => uint) public eventOptions;
 
-    uint[] public LEVEL_MASK; // 60%, 30%, 5%, 1%
-
-    uint[] public CATEGORY_MASK; // 40%, 33%, 17%, 7%, 2%, 1%
-    
-    uint[] public ITEM_MASK; // 35%, 30%, 20%, 10%, 5%
-
-    uint internal _foundationSeed;
-
-    // user => times
-    mapping(address => uint) public emptyTimes;
-
     // roundId => user => eventId => claimed
     mapping(uint => mapping(address => mapping(uint => bool))) public eventClaimed;
 

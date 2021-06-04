@@ -15,6 +15,7 @@ interface IPosRandom {
 
 interface INftFactory {
     function queryGoldenPrice() external view returns (uint);
+    function externalRequestMint(address user, uint chestType, uint _price) external;
 }
 
 interface IZooTokenBurn {
@@ -35,8 +36,6 @@ interface IPrivateSeedOracle {
 
 contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaStorage {
     
-    bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
-
     // scale of power point, 10000 point = 10000e10
     uint public constant POWER_SCALE = 1e10;
 
@@ -74,27 +73,6 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         nftFactory = _nftFactory;
         zooNFT = _zooNFT;
         POS_RANDOM_ADDRESS = _posRandomSC;
-
-        // 60%, 30%, 5%, 1%
-        LEVEL_MASK.push(60);
-        LEVEL_MASK.push(90);
-        LEVEL_MASK.push(95);
-        LEVEL_MASK.push(96);
-
-        // 40%, 33%, 17%, 7%, 2%, 1%
-        CATEGORY_MASK.push(40);
-        CATEGORY_MASK.push(73);
-        CATEGORY_MASK.push(90);
-        CATEGORY_MASK.push(97);
-        CATEGORY_MASK.push(99);
-        CATEGORY_MASK.push(100);
-
-        // 35%, 30%, 20%, 10%, 5%
-        ITEM_MASK.push(35);
-        ITEM_MASK.push(65);
-        ITEM_MASK.push(85);
-        ITEM_MASK.push(95);
-        ITEM_MASK.push(100);
     }
 
     function halt(bool _pause) external {
@@ -105,18 +83,6 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
     function configRobot(address robot) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         grantRole(ROBOT_ROLE, robot);
-    }
-
-    function configOracle(address oracle) external {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        _setRoleAdmin(ORACLE_ROLE, DEFAULT_ADMIN_ROLE);
-        grantRole(ORACLE_ROLE, oracle);
-        _foundationSeed = uint(keccak256(abi.encode(msg.sender, blockhash(block.number - 1), block.coinbase)));
-    }
-
-    function inputSeed(uint seed_) external {
-        require(hasRole(ORACLE_ROLE, msg.sender));
-        _foundationSeed = seed_;
     }
 
     function configEventOptions(uint eventId, uint optionCount) external {
@@ -325,9 +291,9 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         eventClaimed[roundId][user][eventId] = true;
 
         if (golden) {
-            openGoldenChest(user);
+            INftFactory(nftFactory).externalRequestMint(user, 2, 0);
         } else {
-            openSilverChest(user);
+            INftFactory(nftFactory).externalRequestMint(user, 3, 0);
         }
 
         emit ClaimEvent(user, roundId, eventId);
@@ -559,97 +525,6 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         }
 
         addTicket(roundId, selection, msg.sender, 1);
-    }
-
-    function openGoldenChest(address user) private {
-        uint tokenId;
-        uint level;
-        uint category;
-        uint item;
-        uint random;
-        (tokenId, level, category, item, random) = randomNFT(true);
-
-        IZooNFTBoost(zooNFT).mint(tokenId, level, category, item, random);
-        IERC721(zooNFT).safeTransferFrom(address(this), user, tokenId);
-
-        uint itemSupply = IZooNFTBoost(zooNFT).itemSupply(level, category, item);
-        emit MintNFT(level, category, item, random, tokenId, itemSupply, user);
-    }
-
-    function openSilverChest(address user) private {
-        bool success = false;
-        if (emptyTimes[user] >= 9) {
-            success = true;
-        } else {
-            success = isSilverSuccess();
-        }
-
-        if (!success) {
-            emptyTimes[user]++;
-            emit MintNFT(0, 0, 0, 0, 0, 0, user);
-            return;
-        }
-
-        emptyTimes[user] = 0;
-
-        uint tokenId;
-        uint level;
-        uint category;
-        uint item;
-        uint random;
-        (tokenId, level, category, item, random) = randomNFT(false);
-
-        IZooNFTBoost(zooNFT).mint(tokenId, level, category, item, random);
-        IERC721(zooNFT).safeTransferFrom(address(this), user, tokenId);
-        uint itemSupply = IZooNFTBoost(zooNFT).itemSupply(level, category, item);
-        emit MintNFT(level, category, item, random, tokenId, itemSupply, user);
-    }
-
-    function isSilverSuccess() private returns (bool) {
-        uint totalSupply = IZooNFTBoost(zooNFT).totalSupply();
-        uint random1 = uint(keccak256(abi.encode(msg.sender, blockhash(block.number - 1), block.coinbase, block.timestamp, totalSupply, getRandomSeed())));
-        uint random2 = uint(keccak256(abi.encode(random1)));
-        uint random3 = uint(keccak256(abi.encode(random2)));
-        if (random2.mod(1000).add(random3.mod(1000)).mod(10) == 8) {
-            return true;
-        }
-        return false;
-    } 
-
-    function randomNFT(bool golden) private returns (uint tokenId, uint level, uint category, uint item, uint random) {
-        uint totalSupply = IZooNFTBoost(zooNFT).totalSupply();
-        tokenId = totalSupply + 1;
-        uint random1 = uint(keccak256(abi.encode(tokenId, msg.sender, blockhash(block.number - 2), block.coinbase, block.timestamp, getRandomSeed())));
-        uint random2 = uint(keccak256(abi.encode(random1)));
-        uint random3 = uint(keccak256(abi.encode(random2)));
-        uint random4 = uint(keccak256(abi.encode(random3)));
-        uint random5 = uint(keccak256(abi.encode(random4)));
-
-        // mod 100 -> 96 is used for fix the total chance is 96% not 100% issue.
-        level = getMaskValue(random5.mod(96), LEVEL_MASK) + 1;
-        category = getMaskValue(random4.mod(100), CATEGORY_MASK) + 1;
-        if (golden) {
-            item = getMaskValue(random3.mod(100), ITEM_MASK) + 1;
-        } else {
-            item = getMaskValue(random2.mod(85), ITEM_MASK) + 1;
-        }
-        random = random1.mod(300) + 1;
-    }
-
-    function getMaskValue(uint random, uint[] memory mask) private pure returns (uint) {
-        for (uint i=0; i<mask.length; i++) {
-            if (random < mask[i]) {
-                return i;
-            }
-        }
-    }
-
-    function getRandomSeed() internal returns (uint) {
-        uint count = getRoleMemberCount(ORACLE_ROLE);
-        require(count >= 1, "no private oracle found");
-        address privateOracle = getRoleMember(ORACLE_ROLE, count-1);
-        IPrivateSeedOracle(privateOracle).inputSeed(block.timestamp);
-        return _foundationSeed;
     }
 
     function addTicket(uint roundId, uint side, address user, uint count) private {

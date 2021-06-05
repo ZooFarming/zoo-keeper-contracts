@@ -157,6 +157,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         IERC721(zooNFT).safeTransferFrom(address(this), msg.sender, tokenId);
     }
 
+    // called by robot
     function fightStart(uint roundId, uint fightStartBlock) external {
         require(hasRole(ROBOT_ROLE, msg.sender));
         require(!pause, "game paused");
@@ -271,7 +272,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         require(tx.origin == msg.sender, "not allow contract call");
         require(!pause, "game paused");
 
-        uint userSelection = userEvent[roundId][msg.sender][eventId];
+        uint userSelection = userEvent[roundId][user][eventId];
         require(userSelection > 0, "User not bet");
         bool golden = false;
         if (userSelection > 100) {

@@ -15,7 +15,9 @@ module.exports = async function (deployer) {
   }
 
   // TODO: FIX
-  await deployer.deploy(NFTFactoryDelegate);
+  // await deployer.deploy(NFTFactoryDelegate);
+
+  
   return;
 
 

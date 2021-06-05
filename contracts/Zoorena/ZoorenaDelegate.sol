@@ -9,10 +9,6 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 import "./ZoorenaStorage.sol";
 
-interface IPosRandom {
-    function getRandomNumberByEpochId(uint256) external view returns(uint256);
-}
-
 interface INftFactory {
     function queryGoldenPrice() external view returns (uint);
     function externalRequestMint(address user, uint chestType, uint _price) external;
@@ -301,7 +297,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
     function getJackpot(uint roundId) public view returns(bool done, uint[] memory winners) {
         uint calcTime = baseTime + roundTime*roundId;
-        uint posRandom = IPosRandom(POS_RANDOM_ADDRESS).getRandomNumberByEpochId(calcTime / 3600 / 24 + 1);
+        uint posRandom = getRandomByEpochId(calcTime / 3600 / 24 + 1);
         if (posRandom == 0) {
             return (done, winners);
         }
@@ -444,7 +440,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
             return 1;
         }
 
-        if (block.number < roundInfo[roundId].fightStartBlock) {
+        if (block.number < roundInfo[roundId].fightStartBlock || roundInfo[roundId].fightStartBlock == 0) {
             return 2;
         }
 
@@ -452,7 +448,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
             return 3;
         }
 
-        uint posRandom = IPosRandom(POS_RANDOM_ADDRESS).getRandomNumberByEpochId(block.timestamp / 3600 / 24 + 1);
+        uint posRandom = getRandomByEpochId(block.timestamp / 3600 / 24 + 1);
         if (posRandom == 0) {
             return 4;
         }
@@ -517,11 +513,11 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         if (selection == 1) {
             leftUser[roundId][roundInfo[roundId].leftUserCount] = msg.sender;
             roundInfo[roundId].leftUserCount++;
-            roundInfo[roundId].leftPower = roundInfo[roundId].leftPower.add(personPower.mul(POWER_SCALE)).add(tokenId);
+            roundInfo[roundId].leftPower = roundInfo[roundId].leftPower.add(personPower.mul(POWER_SCALE)).add(boost);
         } else {
             rightUser[roundId][roundInfo[roundId].rightUserCount] = msg.sender;
             roundInfo[roundId].rightUserCount++;
-            roundInfo[roundId].rightPower = roundInfo[roundId].rightPower.add(personPower.mul(POWER_SCALE)).add(tokenId);
+            roundInfo[roundId].rightPower = roundInfo[roundId].rightPower.add(personPower.mul(POWER_SCALE)).add(boost);
         }
 
         addTicket(roundId, selection, msg.sender, 1);
@@ -548,6 +544,19 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
             }
 
             emit AddTicket(roundId, user, side, ticket);
+        }
+    }
+
+    function getRandomByEpochId(uint256 epochId)
+        public
+        view
+        returns (uint256)
+    {
+        (bool success, bytes memory data) = address(POS_RANDOM_ADDRESS).staticcall(abi.encodeWithSignature("getRandomNumberByEpochId(uint256)", epochId));
+        if (success) {
+            return uint256(abi.decode(data, (uint)));
+        } else {
+            return 0;
         }
     }
 }

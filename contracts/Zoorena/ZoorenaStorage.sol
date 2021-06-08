@@ -76,4 +76,10 @@ contract ZoorenaStorage {
 
     // pos random contract address
     address public POS_RANDOM_ADDRESS;
+
+    // roundId => user address => ticket index => ticket code
+    mapping(uint => mapping(address => mapping(uint => uint))) public userTickets;
+
+    // roundId => user address => ticket count
+    mapping(uint => mapping(address => uint)) public userTicketCount;
 }

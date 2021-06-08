@@ -544,6 +544,9 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
                 rightTicketCount[roundId]++;
             }
 
+            userTickets[roundId][user][userTicketCount[roundId][user]] = ticket;
+            userTicketCount[roundId][user]++;
+
             emit AddTicket(roundId, user, side, ticket);
         }
     }

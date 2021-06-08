@@ -158,13 +158,13 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
     }
 
     // called by robot
-    function fightStart(uint roundId, uint fightStartBlock) external {
+    function fightStart(uint roundId, uint fightStartBlock, uint _seed) external {
         require(hasRole(ROBOT_ROLE, msg.sender));
         require(!pause, "game paused");
         
         roundInfo[roundId].fightStartBlock = fightStartBlock;
 
-        uint randomSeed = uint(keccak256(abi.encode(blockhash(block.number - 1), blockhash(block.number - 2), blockhash(block.number - 3), block.coinbase, block.timestamp)));
+        uint randomSeed = uint(keccak256(abi.encode(blockhash(block.number - 1), blockhash(block.number - 2), blockhash(block.number - 3), block.coinbase, block.timestamp, _seed)));
 
         roundInfo[roundId].randomSeed = randomSeed;
 

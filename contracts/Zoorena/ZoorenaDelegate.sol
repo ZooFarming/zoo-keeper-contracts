@@ -207,7 +207,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         }
 
         // out of range
-        if (reportId > (eventCount + 1)) {
+        if (reportId >= eventCount) {
             done = false;
             return (done, leftDown, rightDown);
         }

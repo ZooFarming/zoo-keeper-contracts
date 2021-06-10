@@ -102,10 +102,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
         uint roundId = currentRoundId();
         
-        // only support join one clan
-        if (eventId == 0) {
-            require(userEvent[roundId][msg.sender][eventId] == 0, "already selected");
-        }
+        require(userEvent[roundId][msg.sender][eventId] == 0, "already selected");
 
         // select clan
         if (eventId == 0) {

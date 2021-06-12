@@ -531,14 +531,14 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
             if (side == 1) {
                 currentCount = leftTicketCount[roundId];
                 // roundId * 1e6 + side * 1e5 + count
-                ticket = roundId.mul(1e6).add(side.mul(1e5)).add(currentCount+i);
+                ticket = roundId.mul(1e6).add(side.mul(1e5)).add(currentCount);
                 leftTickets[roundId][currentCount] = ticket;
                 ticketOwner[ticket] = user;
                 leftTicketCount[roundId]++;
             } else {
                 currentCount = rightTicketCount[roundId];
                 // roundId * 1e6 + side * 1e5 + count
-                ticket = roundId.mul(1e6).add(side.mul(1e5)).add(currentCount+i);
+                ticket = roundId.mul(1e6).add(side.mul(1e5)).add(currentCount);
                 rightTickets[roundId][currentCount] = ticket;
                 ticketOwner[ticket] = user;
                 rightTicketCount[roundId]++;

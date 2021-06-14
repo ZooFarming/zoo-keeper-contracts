@@ -52,6 +52,9 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         require(_expiration >= minExpirationTime, "expiration too small");
         uint orderId = uint(keccak256(abi.encode(msg.sender, _tokenId, _nftContract, _token)));
         address owner = orders[orderId].owner;
+        if (owner != address(0)) {
+            cancelOrder(_nftContract, _tokenId, _token);
+        }
         require(owner == address(0), "order exist");
         require(_nftContract != address(0), "_nftContract error");
         require(_tokenId != 0, "_tokenId error");
@@ -73,7 +76,7 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
     /// @param _nftContract is the NFT contract address
     /// @param _tokenId is the NFT tokenId
     /// @param _token is the pay token contract address for buyer
-    function cancelOrder(address _nftContract, uint _tokenId, address _token) external {
+    function cancelOrder(address _nftContract, uint _tokenId, address _token) public {
         uint orderId = uint(keccak256(abi.encode(msg.sender, _tokenId, _nftContract, _token)));
         address owner = orders[orderId].owner;
         require(owner != address(0), "order not exist");

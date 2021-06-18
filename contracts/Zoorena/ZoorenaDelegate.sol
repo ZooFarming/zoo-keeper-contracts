@@ -411,13 +411,13 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         uint[] memory winners;
         (done, winners) = getJackpot(roundId);
         require(done, "Not finish");
+        uint balance = IERC20(playToken).balanceOf(address(this));
+        uint amount = balance.div(3);
+
         for (uint i=0; i<3; i++) {
             uint ticket = winners[i];
             if (ticket != 0 && !jackpotClaimed[roundId][ticket]) {
                 jackpotClaimed[roundId][ticket] = true;
-                uint balance = IERC20(playToken).balanceOf(address(this));
-                uint amount = balance.div(3);
-
                 IERC20(playToken).transfer(ticketOwner[ticket], amount);
                 emit ClaimJackpot(ticketOwner[ticket], roundId, amount);
             }

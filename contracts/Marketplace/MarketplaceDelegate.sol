@@ -54,6 +54,7 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         address owner = orders[orderId].owner;
         if (owner != address(0)) {
             cancelOrder(_nftContract, _tokenId, _token);
+            owner = address(0);
         }
         require(owner == address(0), "order exist");
         require(_nftContract != address(0), "_nftContract error");

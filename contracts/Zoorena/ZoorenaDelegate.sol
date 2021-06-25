@@ -481,6 +481,8 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         IERC20(playToken).transferFrom(msg.sender, address(this), _bet);
         // burn 50%
         IZooTokenBurn(playToken).burn(_bet.div(2));
+
+        userBetPrice[roundId][msg.sender][eventId] = _bet;
         
         roundInfo[roundId].jackpot = roundInfo[roundId].jackpot.add(_bet.div(2));
 
@@ -503,6 +505,8 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         IERC20(playToken).transferFrom(msg.sender, address(this), ticket);
         // burn 50%
         IZooTokenBurn(playToken).burn(ticket.div(2));
+
+        userBetPrice[roundId][msg.sender][0] = ticket;
         
         roundInfo[roundId].jackpot = roundInfo[roundId].jackpot.add(ticket.div(2));
         uint boost = 0;

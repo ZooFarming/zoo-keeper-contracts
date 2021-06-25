@@ -82,4 +82,7 @@ contract ZoorenaStorage {
 
     // roundId => user address => ticket count
     mapping(uint => mapping(address => uint)) public userTicketCount;
+
+    // roundId => user address => eventId => bet price
+    mapping(uint => mapping(address => mapping(uint => uint))) public userBetPrice;
 }

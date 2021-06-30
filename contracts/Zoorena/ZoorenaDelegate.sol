@@ -69,6 +69,9 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         nftFactory = _nftFactory;
         zooNFT = _zooNFT;
         POS_RANDOM_ADDRESS = _posRandomSC;
+
+        discount0 = 5000;
+        discount1 = 10000;
     }
 
     function halt(bool _pause) external {
@@ -79,6 +82,12 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
     function configRobot(address robot) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         grantRole(ROBOT_ROLE, robot);
+    }
+
+    function configDiscount(uint _discount0, uint _discount1) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        discount0 = _discount0;
+        discount1 = _discount1;
     }
 
     function configEventOptions(uint eventId, uint optionCount) external {
@@ -469,6 +478,10 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
         userEvent[roundId][msg.sender][eventId] = selection;
         uint goldenPrice = INftFactory(nftFactory).queryGoldenPrice();
+
+        // discount
+        goldenPrice = goldenPrice.mul(discount0).div(discount1);
+
         uint silverPrice = goldenPrice.div(10);
         uint _bet;
         if (golden) {
@@ -486,10 +499,18 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         
         roundInfo[roundId].jackpot = roundInfo[roundId].jackpot.add(_bet.div(2));
 
+        uint ticketCount = 120 / eventOptions[eventId];
         if (golden) {
-            addTicket(roundId, userEvent[roundId][msg.sender][0], msg.sender, 10);
+            addTicket(roundId, userEvent[roundId][msg.sender][0], msg.sender, ticketCount);
         } else {
-            addTicket(roundId, userEvent[roundId][msg.sender][0], msg.sender, 1);
+            if (ticketCount >= 20) {
+                ticketCount = ticketCount / 10;
+            } else if (ticketCount == 15) {
+                ticketCount = 2;
+            } else {
+                ticketCount = 1;
+            }
+            addTicket(roundId, userEvent[roundId][msg.sender][0], msg.sender, ticketCount);
         }
     }
 
@@ -498,6 +519,10 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         userEvent[roundId][msg.sender][eventId] = selection;
 
         uint goldenPrice = INftFactory(nftFactory).queryGoldenPrice();
+
+        // discount
+        goldenPrice = goldenPrice.mul(discount0).div(discount1);
+
         uint silverPrice = goldenPrice.div(10);
         uint ticket = silverPrice.div(2).add(silverPrice.div(20));
 
@@ -525,7 +550,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
             roundInfo[roundId].rightPower = roundInfo[roundId].rightPower.add(personPower.mul(POWER_SCALE)).add(boost);
         }
 
-        addTicket(roundId, selection, msg.sender, 1);
+        addTicket(roundId, selection, msg.sender, 6);
     }
 
     function addTicket(uint roundId, uint side, address user, uint count) private {

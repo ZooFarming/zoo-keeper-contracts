@@ -85,4 +85,9 @@ contract ZoorenaStorage {
 
     // roundId => user address => eventId => bet price
     mapping(uint => mapping(address => mapping(uint => uint))) public userBetPrice;
+
+    // price * discount0 /discount1
+    uint public discount0;
+
+    uint public discount1;
 }

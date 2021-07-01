@@ -524,7 +524,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         goldenPrice = goldenPrice.mul(discount0).div(discount1);
 
         uint silverPrice = goldenPrice.div(10);
-        uint ticket = silverPrice.div(2).add(silverPrice.div(20));
+        uint ticket = silverPrice.div(5);
 
         // cost 55% zoo to get a silver chest
         IERC20(playToken).transferFrom(msg.sender, address(this), ticket);
@@ -550,7 +550,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
             roundInfo[roundId].rightPower = roundInfo[roundId].rightPower.add(personPower.mul(POWER_SCALE)).add(boost);
         }
 
-        addTicket(roundId, selection, msg.sender, 6);
+        addTicket(roundId, selection, msg.sender, 3);
     }
 
     function addTicket(uint roundId, uint side, address user, uint count) private {

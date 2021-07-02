@@ -33,6 +33,12 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         minExpirationTime = _minExpirationTime;
     }
 
+    function configFee(address _feeTo, uint _feeRate) public {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        feeTo = _feeTo;
+        feeRate = _feeRate;
+    }
+
     /// @dev createOrder is called by a seller
     /// @param _nftContract is the NFT contract address
     /// @param _tokenId is the NFT tokenId
@@ -46,6 +52,10 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         require(_expiration >= minExpirationTime, "expiration too small");
         uint orderId = uint(keccak256(abi.encode(msg.sender, _tokenId, _nftContract, _token)));
         address owner = orders[orderId].owner;
+        if (owner != address(0)) {
+            cancelOrder(_nftContract, _tokenId, _token);
+            owner = address(0);
+        }
         require(owner == address(0), "order exist");
         require(_nftContract != address(0), "_nftContract error");
         require(_tokenId != 0, "_tokenId error");
@@ -67,7 +77,7 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
     /// @param _nftContract is the NFT contract address
     /// @param _tokenId is the NFT tokenId
     /// @param _token is the pay token contract address for buyer
-    function cancelOrder(address _nftContract, uint _tokenId, address _token) external {
+    function cancelOrder(address _nftContract, uint _tokenId, address _token) public {
         uint orderId = uint(keccak256(abi.encode(msg.sender, _tokenId, _nftContract, _token)));
         address owner = orders[orderId].owner;
         require(owner != address(0), "order not exist");
@@ -85,7 +95,13 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         orderIds.remove(_orderId);
         delete orders[_orderId];
 
-        IERC20(order.token).safeTransferFrom(msg.sender, order.owner, order.price);
+        uint total = order.price;
+        uint fee = total.mul(feeRate).div(1e12);
+
+        // transfer fee
+        IERC20(order.token).safeTransferFrom(msg.sender, feeTo, fee);
+
+        IERC20(order.token).safeTransferFrom(msg.sender, order.owner, order.price.sub(fee));
         IERC721(order.nftContract).safeTransferFrom(order.owner, msg.sender, order.tokenId);
 
         emit BuyOrder(_orderId, order.tokenId, msg.sender, order.owner, order.nftContract, order.token, order.price);

@@ -33,4 +33,11 @@ contract MarketplaceStorage {
     EnumerableSet.UintSet internal orderIds; 
 
     mapping(uint => OrderInfo) orders;
+
+    // version 2 add
+
+    address public feeTo;
+
+    // fee rate scaled by 1e12
+    uint public feeRate; 
 }

@@ -106,7 +106,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         require(tx.origin == msg.sender, "not allow contract call");
         require(!pause, "game paused");
         require(selection != 0 && selection != 100, "selection error");
-        require(eventId < eventCount, "event Id error");
+        require(eventId <= eventCount, "event Id error");
         require(getStatus() == 1, "betting closed");
 
         uint roundId = currentRoundId();
@@ -454,7 +454,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
             return 2;
         }
 
-        if (block.number < (roundInfo[roundId].fightStartBlock + eventBlock * (eventCount * 2 - 1))) {
+        if (block.number < (roundInfo[roundId].fightStartBlock + eventBlock * (eventCount * 2))) {
             return 3;
         }
 

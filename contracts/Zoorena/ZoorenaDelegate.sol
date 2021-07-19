@@ -212,6 +212,24 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
     }
 
     function getFightingReport(uint roundId, uint reportId) public view returns(bool done, uint leftDown, uint rightDown) {
+        (done, leftDown, rightDown) =  _getFightingReport(roundId, reportId);
+        if (reportId == eventCount - 1 && done) {
+            uint16 totalLeft;
+            uint16 totalRight;
+            (totalLeft, totalRight) = getTotalHpDown(roundId, reportId);
+
+            if ((totalLeft + leftDown) == (totalRight + rightDown)) {
+                uint finalRandom = uint(keccak256(abi.encode(totalLeft, totalRight, leftDown, rightDown))).mod(2);
+                if (finalRandom == 0) {
+                    leftDown = leftDown + 1;
+                } else {
+                    rightDown = rightDown + 1;
+                }
+            }
+        } 
+    }
+
+    function _getFightingReport(uint roundId, uint reportId) public view returns(bool done, uint leftDown, uint rightDown) {
         uint startBlock = roundInfo[roundId].fightStartBlock;
         uint randomSeed = roundInfo[roundId].randomSeed;
         // fight not start
@@ -253,6 +271,16 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         }
 
         return (done, leftDown, rightDown);
+    }
+
+    function getTotalHpDown(uint roundId, uint reportId) public view returns (uint16 totalLeft, uint16 totalRight) {
+        uint _leftDown = 0;
+        uint _rightDown = 0;
+        for (uint i=0; i<reportId; i++) {
+            (, _leftDown, _rightDown) = getFightingReport(roundId, i);
+            totalLeft = totalLeft + uint8(_leftDown);
+            totalRight = totalRight + uint8(_rightDown);
+        }
     }
 
     function getFightResult(uint roundId) public view returns (uint) {

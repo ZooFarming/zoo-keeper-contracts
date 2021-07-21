@@ -137,8 +137,10 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         uint boost = IZooNFTBoost(zooNFT).getBoosting(tokenId);
         if (side == 1) {
             roundInfo[roundId].leftPower = roundInfo[roundId].leftPower.add(boost);
+            roundInfo[roundId].leftNftCount++;
         } else {
             roundInfo[roundId].rightPower = roundInfo[roundId].rightPower.add(boost);
+            roundInfo[roundId].rightNftCount++;
         }
 
         userNft[msg.sender] = tokenId;
@@ -155,10 +157,16 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
         if (userEvent[roundId][msg.sender][0] == 1) {
             roundInfo[roundId].leftPower = roundInfo[roundId].leftPower.sub(boost);
+            if (roundInfo[roundId].leftNftCount > 0) {
+                roundInfo[roundId].leftNftCount--;
+            }
         }
 
         if (userEvent[roundId][msg.sender][0] == 2) {
             roundInfo[roundId].rightPower = roundInfo[roundId].rightPower.sub(boost);
+            if (roundInfo[roundId].rightNftCount > 0) {
+                roundInfo[roundId].rightNftCount--;
+            }
         }
 
         userNft[msg.sender] = 0;
@@ -583,10 +591,16 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
             leftUser[roundId][roundInfo[roundId].leftUserCount] = msg.sender;
             roundInfo[roundId].leftUserCount++;
             roundInfo[roundId].leftPower = roundInfo[roundId].leftPower.add(personPower.mul(POWER_SCALE)).add(boost);
+            if (tokenId != 0) {
+                roundInfo[roundId].leftNftCount++;
+            }
         } else {
             rightUser[roundId][roundInfo[roundId].rightUserCount] = msg.sender;
             roundInfo[roundId].rightUserCount++;
             roundInfo[roundId].rightPower = roundInfo[roundId].rightPower.add(personPower.mul(POWER_SCALE)).add(boost);
+            if (tokenId != 0) {
+                roundInfo[roundId].rightNftCount++;
+            }
         }
 
         addTicket(roundId, selection, msg.sender, 3);

@@ -149,20 +149,21 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
     function withdrawNFT() external {
         require(tx.origin == msg.sender, "not allow contract call");
         require(!pause, "game paused");
-        require(getStatus() == 1, "betting closed");
+        uint status = getStatus();
+        require(status != 2 && status != 3, "can not withdraw in fighting");
         uint roundId = currentRoundId();
         uint tokenId = userNft[msg.sender];
         require(tokenId != 0, "no NFT found");
         uint boost = IZooNFTBoost(zooNFT).getBoosting(tokenId);
 
-        if (userEvent[roundId][msg.sender][0] == 1) {
+        if (userEvent[roundId][msg.sender][0] == 1 && status == 1) {
             roundInfo[roundId].leftPower = roundInfo[roundId].leftPower.sub(boost);
             if (roundInfo[roundId].leftNftCount > 0) {
                 roundInfo[roundId].leftNftCount--;
             }
         }
 
-        if (userEvent[roundId][msg.sender][0] == 2) {
+        if (userEvent[roundId][msg.sender][0] == 2 && status == 1) {
             roundInfo[roundId].rightPower = roundInfo[roundId].rightPower.sub(boost);
             if (roundInfo[roundId].rightNftCount > 0) {
                 roundInfo[roundId].rightNftCount--;

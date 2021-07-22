@@ -270,11 +270,11 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
         done = true;
         
-        // left win
-        if (winnerCode < leftPower) {
+        // right win
+        if (winnerCode >= leftPower) {
             leftDown = baseDamage + damageDifference;
             rightDown = baseDamage;
-        } else { // right win
+        } else { // left win
             leftDown = baseDamage;
             rightDown = baseDamage + damageDifference;
         }

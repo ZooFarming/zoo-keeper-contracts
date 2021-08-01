@@ -41,7 +41,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
     uint public constant eventCount = 9;
 
     // time for each event
-    uint public constant eventBlock = 3;
+    uint public constant eventBlock = 8;
 
     uint public constant personPower = 10;
 

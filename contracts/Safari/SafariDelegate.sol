@@ -6,6 +6,9 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "./SafariStorage.sol";
 
+interface IRewardToken {
+    function decimals() external view returns(uint8);
+}
 
 contract SafariDelegate is SafariStorage, Initializable, AccessControl {
 
@@ -84,9 +87,9 @@ contract SafariDelegate is SafariStorage, Initializable, AccessControl {
         if (curBlockNumber > pool.lastRewardBlock && pool.currentSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, curBlockNumber);
             uint256 tokenReward = multiplier.mul(pool.rewardPerBlock);
-            accRewardPerShare = accRewardPerShare.add(tokenReward.mul(1e12).div(pool.currentSupply));
+            accRewardPerShare = accRewardPerShare.add(tokenReward.mul(getScale(pool.rewardToken)).div(pool.currentSupply));
         }
-        return (user.amount, user.amount.mul(accRewardPerShare).div(1e12).sub(user.rewardDebt));
+        return (user.amount, user.amount.mul(accRewardPerShare).div(getScale(pool.rewardToken)).sub(user.rewardDebt));
     }
 
     // Update reward variables of the given pool to be up-to-date.
@@ -104,7 +107,7 @@ contract SafariDelegate is SafariStorage, Initializable, AccessControl {
 
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, curBlockNumber);
         uint256 tokenReward = multiplier.mul(pool.rewardPerBlock);
-        pool.accRewardPerShare = pool.accRewardPerShare.add(tokenReward.mul(1e12).div(pool.currentSupply));
+        pool.accRewardPerShare = pool.accRewardPerShare.add(tokenReward.mul(getScale(pool.rewardToken)).div(pool.currentSupply));
         pool.lastRewardBlock = curBlockNumber;
     }
 
@@ -117,13 +120,13 @@ contract SafariDelegate is SafariStorage, Initializable, AccessControl {
         
         UserInfo storage user = userInfo[_pid][msg.sender];
 
-        uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
+        uint256 pending = user.amount.mul(pool.accRewardPerShare).div(getScale(pool.rewardToken)).sub(user.rewardDebt);
         
         pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
         user.amount = user.amount.add(_amount);
         pool.currentSupply = pool.currentSupply.add(_amount);
 
-        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(getScale(pool.rewardToken));
 
         if(pending > 0) {
             if (pool.rewardToken == address(wwan)) { // convert wwan to wan 
@@ -143,7 +146,7 @@ contract SafariDelegate is SafariStorage, Initializable, AccessControl {
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
-        uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
+        uint256 pending = user.amount.mul(pool.accRewardPerShare).div(getScale(pool.rewardToken)).sub(user.rewardDebt);
         
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
@@ -151,7 +154,7 @@ contract SafariDelegate is SafariStorage, Initializable, AccessControl {
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
 
-        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(getScale(pool.rewardToken));
         if(pending > 0) {
             if (pool.rewardToken == address(wwan)) { // convert wwan to wan 
                 wwan.withdraw(pending);
@@ -187,5 +190,14 @@ contract SafariDelegate is SafariStorage, Initializable, AccessControl {
 
     receive() external payable {
         require(msg.sender == address(wwan), "Only support value from WWAN"); // only accept WAN via fallback from the WWAN contract
+    }
+
+    function getScale(address _rewardToken) public view returns (uint256) {
+        uint256 decimals = IRewardToken(_rewardToken).decimals();
+        if (decimals == 18) {
+            return 1e12;
+        } else {
+            return 1e32;
+        }
     }
 }

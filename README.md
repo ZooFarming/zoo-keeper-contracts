@@ -1,10 +1,10 @@
 # ZOO KEEPER CONTRACTS
 
-ZooKeeper mainly includes 6 contracts, Token, Farming, Boosting, NFT, NFT Factory, and Marketplace.
+ZooKeeper mainly includes 8 contracts, Token, Farming, Boosting, NFT, NFT Factory, Marketplace, Safari, and ZooRena.
 
 Among them, Token, Farming and NFT are non-upgradable contracts to guarantee the security of the user's principal.
 
-Boosting, NFT Factory and Marketplace are upgradable contracts, which facilitate the future expansion of richer gameplay.
+Boosting, NFT Factory, Marketplace, Safari, and ZooRena are upgradable contracts, which facilitate the future expansion of richer gameplay.
 
 deploy sequence: 
 1) NFT factory, proxy;
@@ -13,6 +13,8 @@ deploy sequence:
 4) ZooToken;
 5) ZooFarming;
 6) Marketplace, proxy;
+7) Safari, proxy;
+8) ZooRena, proxy;
 
 # MAINNET DEPLOY
 

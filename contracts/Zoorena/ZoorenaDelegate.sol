@@ -186,6 +186,8 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
         roundInfo[roundId].randomSeed = randomSeed;
 
+        roundInfo[roundId].timestamp = block.timestamp;
+
         emit FightStart(roundId, fightStartBlock);
     }
 
@@ -354,7 +356,13 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
     }
 
     function getJackpot(uint roundId) public view returns(bool done, uint[] memory winners) {
-        uint calcTime = baseTime + roundTime*roundId;
+        uint calcTime = 0;
+        if (roundId == 0) {
+            calcTime = baseTime + roundTime*roundId;
+        } else {
+            calcTime = roundInfo[roundId].timestamp;
+        }
+
         uint posRandom = getRandomByEpochId(calcTime / 3600 / 24 + 1);
         if (posRandom == 0) {
             return (done, winners);

@@ -346,10 +346,12 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
 
         eventClaimed[roundId][user][eventId] = true;
 
+        uint price = userBetPrice[roundId][user][eventId];
+
         if (golden) {
-            INftFactory(nftFactory).externalRequestMint(user, 2, 0);
+            INftFactory(nftFactory).externalRequestMint(user, 2, price);
         } else {
-            INftFactory(nftFactory).externalRequestMint(user, 3, 0);
+            INftFactory(nftFactory).externalRequestMint(user, 3, price);
         }
 
         emit ClaimEvent(user, roundId, eventId);

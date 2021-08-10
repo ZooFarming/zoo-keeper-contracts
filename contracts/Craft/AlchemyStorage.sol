@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 contract AlchemyStorage {
     using SafeMath for uint256;
 
-    uint public dropRate;
+    uint public dropRate;   // drops per block
 
     address public elixirNFT;
 
@@ -39,9 +39,11 @@ contract AlchemyStorage {
     // user => UserInfo
     mapping(address => UserInfo) public userInfoMap;
 
-    uint256 lastRewardBlock;  // Last block number that drops distribution occurs.
+    uint256 public lastRewardBlock;     // Last block number that drops distribution occurs.
 
-    uint256 accDropPerShare;   // Accumulated Drops per share, times 1e12. See below.
+    uint256 public accDropPerShare;     // Accumulated Drops per share, times 1e12. See below.
 
-    uint256 totalZooStaked;
+    uint256 public totalZooStaked;
+
+    uint256 public elixirBaseScore;
 }

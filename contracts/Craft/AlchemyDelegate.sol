@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 import "./AlchemyStorage.sol";
 
-interface IZooToken {
+interface IBurnToken {
     function burn(uint256 _amount) external;
 }
 
@@ -24,25 +24,54 @@ contract AlchemyDelegate is Initializable, AccessControl, ERC721Holder, AlchemyS
 
     function initialize(address admin, address _elixirNFT, address _buyToken) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
+        _setupRole(DEFAULT_ADMIN_ROLE, admin);
+
 
         dropRate = 100 ether;  // 100 DROP per block
         buyPrice = 100 ether;
+        elixirBaseScore = 100 ether;
         buyToken = _buyToken;
         elixirNFT = _elixirNFT;
     }
+
+    function configDropRate(uint _dropRate) external {
+        hasRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        dropRate = _dropRate;
+    }
+
+    function configElixirBaseScore(uint _baseScore) external {
+        hasRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        elixirBaseScore = _baseScore;
+    }
+
 
     function elixirInfo(uint tokenId) public returns (uint level, uint drops) {
         ElixirInfo storage info = elixirInfoMap[tokenId];
         return (info.level, info.drops.add(pendingDrops(tokenId)));
     }
 
-    function pendingDrops(uint tokenId) public return (uint) {
-        return 0; // TODO
+    function maxPendingDrops(address user) public view returns (uint) {
+        return 100 ether; // TODO
+    }
+
+    function pendingDrops(address _user) public returns (uint) {
+        UserInfo storage user = userInfoMap[_user];
+        if (block.number > lastRewardBlock && totalZooStaked != 0) {
+            uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
+            uint256 dropReward = multiplier.mul(dropRate);
+            accDropPerShare = accDropPerShare.add(dropReward.mul(1e12).div(totalZooStaked));
+        }
+
+        uint ret = user.amount.mul(accDropPerShare).div(1e12).sub(user.rewardDebt);
+        if (ret <= maxPendingDrops(user)) {
+            return ret;
+        }
+        return maxPendingDrops(user);
     }
 
     function buy() external {
         IERC20(buyToken).transferFrom(msg.sender, address(this), buyPrice);
-        IZooToken(buyToken).burn(buyPrice);
+        IBurnToken(buyToken).burn(buyPrice);
         totalMint = totalMint.add(1);
         IElixirNFT(elixirNFT).mint(totalMint);
         IERC721(elixirNFT).safeTransferFrom(address(this), msg.sender, totalMint);

@@ -51,4 +51,37 @@ contract AlchemyDelegate is Initializable, AccessControl, ERC721Holder, AlchemyS
     function depositElixir(uint tokenId) public {
 
     }
+
+    function depositZoo(uint amount) public {
+
+    }
+
+    function depositElixirAndZoo(uint tokenId, uint zooAmount) external {
+        depositElixir(tokenId);
+        depositZoo(zooAmount);
+    }
+
+    function upgradeElixir() external {
+
+    }
+
+    function withdrawElixirAndZoo() external {
+
+    }
+
+    function withdrawZoo(uint amount) public {
+
+    }
+
+    function nftCraft(uint tokenId0, uint tokenId1) external {
+
+    }
+
+    function nftUpgradeCraft(uint tokenId0, uint tokenId1) public {
+
+    }
+
+    function burnZooNft(uint tokenId) internal {
+        
+    }
 }

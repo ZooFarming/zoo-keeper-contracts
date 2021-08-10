@@ -24,9 +24,24 @@ contract AlchemyStorage {
         uint drops; // current drops in bottle
     }
 
+    struct UserInfo {
+        uint256 amount;     
+        uint256 rewardDebt; 
+        uint256 elixirId;
+    }
+
     // tokenId => ElixirInfo
     mapping(uint => ElixirInfo) public elixirInfoMap;
 
     // user => tokenId
     mapping(address => uint) public elixirOwnerMap;
+
+    // user => UserInfo
+    mapping(address => UserInfo) public userInfoMap;
+
+    uint256 lastRewardBlock;  // Last block number that drops distribution occurs.
+
+    uint256 accDropPerShare;   // Accumulated Drops per share, times 1e12. See below.
+
+    uint256 totalZooStaked;
 }

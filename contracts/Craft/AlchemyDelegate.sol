@@ -84,4 +84,19 @@ contract AlchemyDelegate is Initializable, AccessControl, ERC721Holder, AlchemyS
     function burnZooNft(uint tokenId) internal {
         
     }
+
+    function updateDrops() public {
+        if (block.number <= lastRewardBlock) {
+            return;
+        }
+        uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
+        uint256 dropReward = multiplier.mul(dropRate);
+        accDropPerShare = accDropPerShare.add(dropReward.mul(1e12).div(totalZooStaked));
+        lastRewardBlock = block.number;
+    }
+
+    // Return reward multiplier over the given _from to _to block.
+    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
+        return _to.sub(_from);
+    }
 }

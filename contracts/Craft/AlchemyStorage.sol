@@ -3,47 +3,46 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-
 contract AlchemyStorage {
     using SafeMath for uint256;
 
-    uint public dropRate;   // drops per block
+    uint256 public baseRatePerBlock; // drops per block
 
     address public elixirNFT;
 
-    uint public totalMint;
+    uint256 public totalMint;
 
-    uint public totalBurn;
+    uint256 public totalBurn;
 
-    uint public buyPrice;
+    uint256 public priceFactor0;
+
+    uint256 public priceFactor1;
+
+    address public priceOracle;
 
     address public buyToken;
 
     struct ElixirInfo {
-        uint level; // current level
-        uint drops; // current drops in bottle
+        uint256 level; // current level
+        uint256 drops; // current drops in bottle
+        uint256 color; // color of the elixir
+        uint256 shape; // shape of the elixir
+        string name; // name of the elixir
     }
 
     struct UserInfo {
-        uint256 amount;     
-        uint256 rewardDebt; 
-        uint256 elixirId;
+        uint256 amount;
+        uint256 lastRewardBlock; // Last block number that drops distribution occurs.
     }
 
     // tokenId => ElixirInfo
-    mapping(uint => ElixirInfo) public elixirInfoMap;
+    mapping(uint256 => ElixirInfo) public elixirInfoMap;
 
     // user => tokenId
-    mapping(address => uint) public elixirOwnerMap;
+    mapping(address => uint256) public userElixirMap;
 
     // user => UserInfo
     mapping(address => UserInfo) public userInfoMap;
-
-    uint256 public lastRewardBlock;     // Last block number that drops distribution occurs.
-
-    uint256 public accDropPerShare;     // Accumulated Drops per share, times 1e12. See below.
-
-    uint256 public totalZooStaked;
 
     uint256 public elixirBaseScore;
 }

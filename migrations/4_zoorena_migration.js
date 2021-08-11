@@ -10,7 +10,7 @@ module.exports = async function (deployer) {
 
   // TODO: DEBUG
   // await deployer.deploy(ZoorenaDelegate);
-  // return;
+  return;
 
   let deployerAddr = deployer.provider.addresses[0];
   console.log('deployerAddr', deployerAddr);

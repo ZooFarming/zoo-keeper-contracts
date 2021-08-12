@@ -22,6 +22,8 @@ contract AlchemyStorage {
 
     address public buyToken;
 
+    address public zooNFT;
+
     struct ElixirInfo {
         uint256 level; // current level
         uint256 drops; // current drops in bottle

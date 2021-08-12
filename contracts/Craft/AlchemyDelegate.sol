@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+pragma experimental ABIEncoderV2;
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -18,6 +19,24 @@ interface IElixirNFT {
     function mint(uint256 tokenId, uint256 tokenType) external;
 
     function burn(uint256 tokenId) external;
+}
+
+interface ICraftNFT {
+    // scaled 1e12
+    function getBoosting(uint256 _tokenId) external view returns (uint256);
+
+    struct TokenInfo {
+        uint256 level;
+        uint256 category;
+        uint256 item;
+        uint256 random;
+    }
+
+    // tokenId => tokenInfo
+    function tokenInfo(uint256 _tokenId)
+        external
+        view
+        returns (TokenInfo memory);
 }
 
 interface IGoldenOracle {
@@ -59,11 +78,14 @@ contract AlchemyDelegate is
 
     event WithdrawZoo(address indexed user, uint256 amount);
 
+    event BurnNFT(uint256 indexed tokenId, address indexed nftToken);
+
     function initialize(
         address admin,
         address _elixirNFT,
         address _buyToken,
-        address _priceOracle
+        address _priceOracle,
+        address _zooNFT
     ) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
@@ -72,6 +94,7 @@ contract AlchemyDelegate is
         priceOracle = _priceOracle;
         buyToken = _buyToken;
         elixirNFT = _elixirNFT;
+        zooNFT = _zooNFT;
         priceFactor0 = 1;
         priceFactor1 = 100; //1%
     }
@@ -117,14 +140,17 @@ contract AlchemyDelegate is
     function pendingDrops(address _user) public view returns (uint256) {
         UserInfo storage user = userInfoMap[_user];
         if (block.number > user.lastRewardBlock) {
-            uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
+            uint256 multiplier = getMultiplier(
+                user.lastRewardBlock,
+                block.number
+            );
             uint256 boost = getUserBoosting(_user);
             uint256 dropReward = multiplier
                 .mul(baseRatePerBlock)
                 .mul(boost)
                 .div(BOOST_SCALE);
 
-            return maxPendingDrops(user, dropReward);
+            return maxPendingDrops(_user, dropReward);
         }
         return 0;
     }
@@ -145,7 +171,7 @@ contract AlchemyDelegate is
     }
 
     function buy(string calldata customName) external {
-        require(customName.length <= 64, "name too long");
+        require(bytes(customName).length <= 128, "name too long");
         IERC20(buyToken).safeTransferFrom(
             msg.sender,
             address(this),
@@ -182,7 +208,7 @@ contract AlchemyDelegate is
         IERC721(elixirNFT).safeTransferFrom(msg.sender, address(this), tokenId);
 
         userElixirMap[msg.sender] = tokenId;
-        UserInfo storage user = userInfoMap[_user];
+        UserInfo storage user = userInfoMap[msg.sender];
         user.lastRewardBlock = block.number;
 
         emit DepositElixir(msg.sender, tokenId);
@@ -193,7 +219,7 @@ contract AlchemyDelegate is
         updateDrops(msg.sender);
 
         IERC20(buyToken).safeTransferFrom(msg.sender, address(this), amount);
-        UserInfo storage user = userInfoMap[_user];
+        UserInfo storage user = userInfoMap[msg.sender];
         user.amount = user.amount.add(amount);
 
         emit DepositZoo(msg.sender, amount);
@@ -235,16 +261,21 @@ contract AlchemyDelegate is
         emit WithdrawZoo(msg.sender, amount);
     }
 
-    function nftCraft(uint256 tokenId0, uint256 tokenId1) external {}
+    function nftCraft(
+        uint256 elixirId,
+        uint256 tokenId0,
+        uint256 tokenId1
+    ) external {}
 
-    function nftUpgradeCraft(uint256 tokenId0, uint256 tokenId1) public {}
-
-    function burnZooNft(uint256 tokenId) internal {}
+    function burnZooNft(uint256 tokenId) internal {
+        IERC721(zooNFT).safeTransferFrom(msg.sender, address(0x0f), tokenId);
+        emit BurnNFT(tokenId, zooNFT);
+    }
 
     // Return reward multiplier over the given _from to _to block.
     function getMultiplier(uint256 _from, uint256 _to)
         public
-        view
+        pure
         returns (uint256)
     {
         return _to.sub(_from);

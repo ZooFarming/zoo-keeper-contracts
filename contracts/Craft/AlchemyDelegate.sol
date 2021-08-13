@@ -23,7 +23,7 @@ interface IElixirNFT {
 
 interface ICraftNFT {
     // scaled 1e12
-    function getBoosting(uint256 _tokenId) external view returns (uint256);
+    // function getBoosting(uint256 _tokenId) external view returns (uint256);
 
     struct TokenInfo {
         uint256 level;
@@ -172,6 +172,8 @@ contract AlchemyDelegate is
 
     function buy(string calldata customName) external {
         require(bytes(customName).length <= 128, "name too long");
+        require(bytes(customName).length > 0, "name too short");
+
         IERC20(buyToken).safeTransferFrom(
             msg.sender,
             address(this),
@@ -270,6 +272,32 @@ contract AlchemyDelegate is
     function burnZooNft(uint256 tokenId) internal {
         IERC721(zooNFT).safeTransferFrom(msg.sender, address(0x0f), tokenId);
         emit BurnNFT(tokenId, zooNFT);
+    }
+
+    function getCraftProbability(uint elixirId, uint nftId0, uint nftId1) public view returns (bool can, uint score0, uint score1) {
+        ElixirInfo storage info = elixirInfoMap[elixirId];
+        if (bytes(info.name).length == 0 || elixirId == 0 || nftId0 == 0 || nftId1 == 0) {
+            return (false, 0, 0);
+        }
+
+        ICraftNFT.TokenInfo memory t0 = ICraftNFT(zooNFT).tokenInfo(nftId0);
+        ICraftNFT.TokenInfo memory t1 = ICraftNFT(zooNFT).tokenInfo(nftId1);
+        if (info.level < t0.level || info.level < t1.level) {
+            return (false, 0, 0);
+        }
+
+        // TODO: CHECK DROPS count
+
+        return getLevelProbability(t0.level, t0.category, t0.item, t1.level, t1.category, t1.item);
+    }
+
+    function getLevelProbability(uint level0, uint category0, uint class0, uint level1, uint category1, uint class1) public pure returns (bool can, uint score0, uint score1) {
+        if (level0 != level1) {
+            return (false, 0, 0);
+        }
+        can = true;
+        score0 = level0**2 * 100 + category0**2*200 + class0**2*200;
+        score1 = level1**2 * 100 + category1**2*200 + class1**2*200;
     }
 
     // Return reward multiplier over the given _from to _to block.

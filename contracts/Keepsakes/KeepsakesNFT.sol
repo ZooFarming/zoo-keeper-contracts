@@ -11,9 +11,14 @@ contract KeepsakesNFT is ERC721Burnable, Initializable, AccessControl {
     bytes32 public constant NFT_FACTORY_ROLE =
         keccak256("FARMING_CONTRACT_ROLE");
 
+    // tokenId => creator
     mapping(uint => address) public nftCreator;
 
+    // creator => totalSupply
     mapping(address => uint) public creatorSupply;
+
+    // tokenId => creator Index
+    mapping(uint => uint) public nftIndexOfCreator;
 
     constructor() public ERC721("ZooKeeper Keepsakes NFT", "KEEPSAKES") {}
 
@@ -32,6 +37,7 @@ contract KeepsakesNFT is ERC721Burnable, Initializable, AccessControl {
         _setTokenURI(tokenId, uri);
         nftCreator[tokenId] = _creator;
         creatorSupply[_creator] = creatorSupply[_creator] + 1;
+        nftIndexOfCreator[tokenId] = creatorSupply[_creator];
     }
 
     function setNftURI(uint256 tokenId, string calldata uri) external {

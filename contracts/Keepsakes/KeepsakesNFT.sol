@@ -15,7 +15,7 @@ contract KeepsakesNFT is ERC721Burnable, Initializable, AccessControl {
 
     mapping(address => uint) public creatorSupply;
 
-    constructor() public ERC721("ZooKeeper Keepsake NFT", "KEEPSAKE") {}
+    constructor() public ERC721("ZooKeeper Keepsakes NFT", "KEEPSAKES") {}
 
     function initialize(address admin) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);

@@ -10,18 +10,18 @@ import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 
-import "./KeepstakeCreatorStorage.sol";
+import "./KeepsakesCreatorStorage.sol";
 
 interface IKeepsakeNFT {
     function mint(uint256 tokenId, string calldata uri, address _creator) external;
     function totalSupply() external view returns (uint256);
 }
 
-contract KeepstakeCreatorDelegate is
+contract KeepsakesCreatorDelegate is
     Initializable,
     AccessControl,
     ERC721Holder,
-    KeepstakeCreatorStorage
+    KeepsakesCreatorStorage
 {
 
     modifier onlyAdmin() {

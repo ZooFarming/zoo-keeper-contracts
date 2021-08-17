@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 
 // KeepsakeNFT
-contract KeepsakeNFT is ERC721Burnable, Initializable, AccessControl {
+contract KeepsakesNFT is ERC721Burnable, Initializable, AccessControl {
     bytes32 public constant NFT_FACTORY_ROLE =
         keccak256("FARMING_CONTRACT_ROLE");
 

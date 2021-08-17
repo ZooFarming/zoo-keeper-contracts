@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 
 
-contract KeepstakeCreatorStorage {
+contract KeepsakesCreatorStorage {
     using SafeMath for uint256;
 
     address public keepsakeNFT;

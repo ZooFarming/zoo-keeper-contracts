@@ -20,6 +20,9 @@ contract KeepsakesNFT is ERC721Burnable, Initializable, AccessControl {
     // tokenId => creator Index
     mapping(uint => uint) public nftIndexOfCreator;
 
+    // tokenId => timestamp
+    mapping(uint => uint) public createTime;
+
     constructor() public ERC721("ZooKeeper Keepsakes NFT", "KEEPSAKES") {}
 
     function initialize(address admin) public payable initializer {
@@ -38,6 +41,7 @@ contract KeepsakesNFT is ERC721Burnable, Initializable, AccessControl {
         nftCreator[tokenId] = _creator;
         creatorSupply[_creator] = creatorSupply[_creator] + 1;
         nftIndexOfCreator[tokenId] = creatorSupply[_creator];
+        createTime[tokenId] = block.timestamp;
     }
 
     function setNftURI(uint256 tokenId, string calldata uri) external {

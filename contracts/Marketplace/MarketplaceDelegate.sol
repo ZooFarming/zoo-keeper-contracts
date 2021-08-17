@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "./MarketplaceStorage.sol";
 
 
-contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage {
+contract MarketplaceDelegateV2 is Initializable, AccessControl, MarketplaceStorage {
     using SafeERC20 for IERC20;
 
     event CreateOrder(address indexed _nftContract, uint indexed _tokenId, address indexed _token, uint _price, uint _expiration, uint _orderId);
@@ -198,6 +198,16 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
                 emit CleanOrder(orderId, info.tokenId, info.owner, info.nftContract, info.token, info.price);
             }
         }
+    }
+
+    function configZooNFT(address _zooNFT) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+
+    }
+
+    function burnIllegalZooNFT(uint tokenId) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+
     }
 }
 

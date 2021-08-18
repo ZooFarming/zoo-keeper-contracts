@@ -10,7 +10,5 @@ contract MarketplaceStorageV2 is MarketplaceStorage {
     // level => category => item => ZOO price
     mapping(uint => mapping(uint => mapping(uint => uint))) public zooNftPrice;
 
-    uint public constant defaultPrice = 100 ether;
-
     address public zooNFT;
 }

@@ -7,11 +7,16 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "./MarketplaceStorage.sol";
 
 
 contract MarketplaceDelegateV2 is Initializable, AccessControl, MarketplaceStorage {
     using SafeERC20 for IERC20;
+
+    uint public constant defaultPrice = 100 ether;
+
+    uint public constant blackHole = address(0xF000000000000000000000000000000000000000);
 
     event CreateOrder(address indexed _nftContract, uint indexed _tokenId, address indexed _token, uint _price, uint _expiration, uint _orderId);
 
@@ -20,6 +25,8 @@ contract MarketplaceDelegateV2 is Initializable, AccessControl, MarketplaceStora
     event BuyOrder(uint indexed _orderId, uint indexed _tokenId, address indexed _buyer, address _seller, address _nftContract, address _token, uint price);
     
     event CleanOrder(uint indexed _orderId, uint indexed _tokenId, address indexed _seller, address _nftContract, address _token, uint price);
+
+    event BurnIllegalNFT(address indexed user, uint indexed tokenId);
 
     function initialize(address admin) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
@@ -202,12 +209,17 @@ contract MarketplaceDelegateV2 is Initializable, AccessControl, MarketplaceStora
 
     function configZooNFT(address _zooNFT) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-
+        zooNFT = _zooNFT;
     }
 
     function burnIllegalZooNFT(uint tokenId) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        address tokenOwner = IERC721(zooNFT).ownerOf(tokenId);
+        require(tokenOwner != blackHole, "Already in black hole");
+        require(!Address.isContract(tokenOwner), "NFT is locked in a smart contract");
 
+        IERC721(zooNFT).safeTransferFrom(tokenOwner, blackHole, tokenId);
+        emit BurnIllegalNFT(tokenOwner, tokenId);
     }
 }
 

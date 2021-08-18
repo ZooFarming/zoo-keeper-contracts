@@ -8,15 +8,22 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "./MarketplaceStorage.sol";
+import "./MarketplaceStorageV2.sol";
 
+interface IZooNftInfo {
+    function tokenInfo(uint _tokenId) external returns (uint level, uint category, uint item, uint random);
+}
 
-contract MarketplaceDelegateV2 is Initializable, AccessControl, MarketplaceStorage {
+interface IBurnToken {
+    function burn(uint256 _amount) external;
+}
+
+contract MarketplaceDelegateV2 is Initializable, AccessControl, MarketplaceStorageV2 {
     using SafeERC20 for IERC20;
 
     uint public constant defaultPrice = 100 ether;
 
-    uint public constant blackHole = address(0xF000000000000000000000000000000000000000);
+    address public constant blackHole = address(0xf000000000000000000000000000000000000000);
 
     event CreateOrder(address indexed _nftContract, uint indexed _tokenId, address indexed _token, uint _price, uint _expiration, uint _orderId);
 
@@ -110,6 +117,8 @@ contract MarketplaceDelegateV2 is Initializable, AccessControl, MarketplaceStora
 
         IERC20(order.token).safeTransferFrom(msg.sender, order.owner, order.price.sub(fee));
         IERC721(order.nftContract).safeTransferFrom(order.owner, msg.sender, order.tokenId);
+
+        recordZooPrice(order.nftContract, order.tokenId, order.token, order.price);
 
         emit BuyOrder(_orderId, order.tokenId, msg.sender, order.owner, order.nftContract, order.token, order.price);
     }
@@ -207,9 +216,10 @@ contract MarketplaceDelegateV2 is Initializable, AccessControl, MarketplaceStora
         }
     }
 
-    function configZooNFT(address _zooNFT) external {
+    function configZooNFT(address _zooNFT, address _zooToken) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         zooNFT = _zooNFT;
+        zooToken = _zooToken;
     }
 
     function burnIllegalZooNFT(uint tokenId) external {
@@ -220,6 +230,40 @@ contract MarketplaceDelegateV2 is Initializable, AccessControl, MarketplaceStora
 
         IERC721(zooNFT).safeTransferFrom(tokenOwner, blackHole, tokenId);
         emit BurnIllegalNFT(tokenOwner, tokenId);
+    }
+
+    function configZooNFTPrice(uint level, uint category, uint item, uint price) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        zooNftPrice[level][category][item] = price;
+    }
+
+    function recordZooPrice(address tokenSC, uint tokenId, address payToken, uint price) internal {
+        if (tokenSC != zooNFT || payToken != zooToken) {
+            return;
+        }
+
+        uint level;
+        uint category;
+        uint item;
+        (level, category, item,) = IZooNftInfo(zooNFT).tokenInfo(tokenId);
+        zooNftPrice[level][category][item] = price;
+    }
+
+    function transferZooNFT(uint tokenId, address to) external {
+        uint level;
+        uint category;
+        uint item;
+        (level, category, item,) = IZooNftInfo(zooNFT).tokenInfo(tokenId);
+        uint price = zooNftPrice[level][category][item];
+        if (price == 0) {
+            price = defaultPrice;
+        }
+
+        uint burnAmount = price.div(100);
+        IERC20(zooToken).transferFrom(msg.sender, address(this), burnAmount);
+        IBurnToken(zooToken).burn(burnAmount);
+
+        IERC721(zooNFT).safeTransferFrom(msg.sender, to, tokenId);
     }
 }
 

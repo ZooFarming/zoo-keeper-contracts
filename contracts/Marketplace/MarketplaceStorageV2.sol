@@ -11,4 +11,6 @@ contract MarketplaceStorageV2 is MarketplaceStorage {
     mapping(uint => mapping(uint => mapping(uint => uint))) public zooNftPrice;
 
     address public zooNFT;
+
+    address public zooToken;
 }

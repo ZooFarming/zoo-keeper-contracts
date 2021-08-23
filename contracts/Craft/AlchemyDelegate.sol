@@ -8,12 +8,9 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "../interfaces/IBurnToken.sol";
 
 import "./AlchemyStorage.sol";
-
-interface IBurnToken {
-    function burn(uint256 _amount) external;
-}
 
 interface IElixirNFT {
     function mint(uint256 tokenId, uint256 tokenType) external;

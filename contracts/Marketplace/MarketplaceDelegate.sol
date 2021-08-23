@@ -8,17 +8,14 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
+import "../interfaces/IBurnToken.sol";
 import "./MarketplaceStorageV2.sol";
 
 interface IZooNftInfo {
     function tokenInfo(uint _tokenId) external returns (uint level, uint category, uint item, uint random);
 }
 
-interface IBurnToken {
-    function burn(uint256 _amount) external;
-}
-
-contract MarketplaceDelegateV2 is Initializable, AccessControl, MarketplaceStorageV2 {
+contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorageV2 {
     using SafeERC20 for IERC20;
 
     uint public constant defaultPrice = 100 ether;

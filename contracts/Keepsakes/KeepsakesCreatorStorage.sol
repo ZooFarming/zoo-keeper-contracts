@@ -11,4 +11,8 @@ contract KeepsakesCreatorStorage {
     address public keepsakeNFT;
 
     EnumerableSet.AddressSet authorList;
+
+    mapping(bytes32 => uint) public keepsakesSupply;
+    mapping(uint => uint) public keepsakesIndex;
+    mapping(uint => bytes32) public keepsakesInitUriHash;
 }

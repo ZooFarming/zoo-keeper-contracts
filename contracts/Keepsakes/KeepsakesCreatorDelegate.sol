@@ -65,6 +65,15 @@ contract KeepsakesCreatorDelegate is
         uint newTokenId = IKeepsakeNFT(keepsakeNFT).totalSupply() + 1;
         IKeepsakeNFT(keepsakeNFT).mint(newTokenId, uri, msg.sender);
         IERC721(keepsakeNFT).safeTransferFrom(address(this), to, newTokenId);
+        bytes32 uriHash = keccak256(bytes(uri));
+        keepsakesInitUriHash[newTokenId] = uriHash;
+        keepsakesSupply[uriHash] = keepsakesSupply[uriHash] + 1;
+        keepsakesIndex[newTokenId] = keepsakesSupply[uriHash];
+    }
+
+    function cardNumber(uint tokenId) public view returns(uint, uint) {
+        bytes32 uriHash = keepsakesInitUriHash[tokenId];
+        return (keepsakesIndex[tokenId], keepsakesSupply[uriHash]);
     }
 
     function airDrop(string calldata uri, address[] calldata users) external {

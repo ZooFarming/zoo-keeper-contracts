@@ -220,19 +220,33 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         }
     }
 
+    function priceRaiseSilver(uint currentPrice) private {
+        if (currentPrice.mul(1001).div(1000) > dynamicMaxPrice) {
+            lastPrice = dynamicMaxPrice;
+        } else {
+            lastPrice = currentPrice.mul(1001).div(1000);
+        }
+    }
+
     /// @dev Stake ZOO to get NFT
     /// @param _type value: 
     /// 0: lock x10 48 hours to get golden chest
     /// 1: lock x1 15 days to get golden chest
     /// 2: lock x0.5 30 days to get golden chest
+    /// 3: lock x0.25 7 days to get silver chest
     function stakeZoo(uint _type) public {
         require(isStakeFinished(_type), "There is still pending stake");
         require(_type < stakePlanCount, "_type error");
 
         uint currentPrice = queryGoldenPrice();
         lastOrderTimestamp = block.timestamp;
-        // every 1 order, the price goes up 1%
-        priceRaise(currentPrice);
+        
+        if (_type == 3) {
+            priceRaiseSilver(currentPrice);
+        } else {
+            // every 1 order, the price goes up 1%
+            priceRaise(currentPrice);
+        }
 
         stakeInfo[msg.sender][_type].startTime = block.timestamp;
 
@@ -256,6 +270,10 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         return stakeInfo[msg.sender][_type].stakeAmount == 0;
     }
 
+    /// 0: lock x10 48 hours to get golden chest
+    /// 1: lock x1 15 days to get golden chest
+    /// 2: lock x0.5 30 days to get golden chest
+    /// 3: lock x0.25 7 days to get silver chest
     function stakeClaim(uint _type) public {
         require(msg.sender == tx.origin, "can not call from contract");
         require(_type < stakePlanCount, "_type error");
@@ -267,8 +285,14 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         delete stakeInfo[msg.sender][_type];
 
         //mint NFT
-        // 0: buy silver, 1: buy golden, 2: golden claim, 3: silver claim
-        requestMint(msg.sender, 2, amount);
+        
+        if (_type == 3) {
+            // 0: buy silver, 1: buy golden, 2: golden claim, 3: silver claim
+            requestMint(msg.sender, 3, amount);
+        } else {
+            // 0: buy silver, 1: buy golden, 2: golden claim, 3: silver claim
+            requestMint(msg.sender, 2, amount);
+        }
 
         IERC20(zooToken).safeTransfer(msg.sender, amount);
         stakedAmount[_type] = stakedAmount[_type].sub(amount);

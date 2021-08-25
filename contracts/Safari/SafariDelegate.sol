@@ -111,7 +111,7 @@ contract SafariDelegate is SafariStorage, Initializable, AccessControl {
         pool.lastRewardBlock = curBlockNumber;
     }
 
-    function deposit(uint256 _pid, uint256 _amount) public {
+    function deposit(uint256 _pid, uint256 _amount) public virtual {
         require(_pid < poolInfo.length, "pid >= poolInfo.length");
         PoolInfo storage pool = poolInfo[_pid];
         require(block.number < pool.bonusEndBlock,"already end");
@@ -140,7 +140,7 @@ contract SafariDelegate is SafariStorage, Initializable, AccessControl {
     }
 
     // Withdraw LP tokens from MasterChef.
-    function withdraw(uint256 _pid, uint256 _amount) public {
+    function withdraw(uint256 _pid, uint256 _amount) public virtual {
         require(_pid < poolInfo.length, "pid >= poolInfo.length");
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];

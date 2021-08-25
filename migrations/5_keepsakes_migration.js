@@ -8,7 +8,7 @@ module.exports = async function (deployer) {
     console.log('no need migration');
     return;
   }
-  await deployer.deploy(KeepsakesCreatorDelegate);
+  // await deployer.deploy(KeepsakesCreatorDelegate);
   return;
 
   let deployerAddr = deployer.provider.addresses[0];

@@ -25,11 +25,14 @@ contract SafariDelegateV2 is SafariDelegate, ERC721Holder {
     }
 
     function depositWithNft(uint256 _pid, uint256 _amount, uint256 tokenId) public {
-        address creator = INftCreator(keepsakesNft).nftCreator(tokenId);
-        require(creator == phxCreator, "Not phx NFT");
-        require(nftBank[msg.sender] == 0, "NFT exist");
-        IERC721(keepsakesNft).safeTransferFrom(msg.sender, address(this), tokenId);
-        nftBank[msg.sender] = tokenId;
+        UserInfo storage user = userInfo[_pid][msg.sender];
+        if (user.amount == 0) {
+            address creator = INftCreator(keepsakesNft).nftCreator(tokenId);
+            require(creator == phxCreator, "Not phx NFT");
+            require(nftBank[msg.sender] == 0, "NFT exist");
+            IERC721(keepsakesNft).safeTransferFrom(msg.sender, address(this), tokenId);
+            nftBank[msg.sender] = tokenId;
+        }
         super.deposit(_pid, _amount);
     }
 

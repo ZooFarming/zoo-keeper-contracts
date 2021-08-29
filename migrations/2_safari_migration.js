@@ -1,5 +1,6 @@
 // const Migrations = artifacts.require("Migrations");
 const SafariDelegate = artifacts.require("SafariDelegate");
+const SafariDelegateV2 = artifacts.require("SafariDelegateV2");
 const ZooKeeperProxy = artifacts.require("ZooKeeperProxy");
 
 module.exports = async function (deployer) {
@@ -9,6 +10,7 @@ module.exports = async function (deployer) {
   }
 
   // TODO: DEBUG
+  await deployer.deploy(SafariDelegateV2);
   return;
 
   let deployerAddr = deployer.provider.addresses[0];

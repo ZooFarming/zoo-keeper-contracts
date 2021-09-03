@@ -237,6 +237,8 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
     function stakeZoo(uint _type) public {
         require(isStakeFinished(_type), "There is still pending stake");
         require(_type < stakePlanCount, "_type error");
+        uint amount = stakeInfo[msg.sender][_type].stakeAmount;
+        require(amount == 0, "please claim first");
 
         uint currentPrice = queryGoldenPrice();
         lastOrderTimestamp = block.timestamp;

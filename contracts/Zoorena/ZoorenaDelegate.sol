@@ -46,7 +46,7 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
     uint public constant personPower = 10;
 
     // init power point for both
-    uint public constant initPower = 10000;
+    uint public constant initPower = 0;
 
     event Bet(address indexed user, uint indexed roundId, uint indexed eventId, uint selection);
 

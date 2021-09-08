@@ -263,8 +263,14 @@ contract ZoorenaDelegate is Initializable, AccessControl, ERC721Holder, ZoorenaS
         }
 
         uint random = uint(keccak256(abi.encode(fightBlock, fightBlock * 55, randomSeed)));
-        uint leftPower = roundInfo[roundId].leftPower.add(initPower.mul(POWER_SCALE));
-        uint rightPower = roundInfo[roundId].rightPower.add(initPower.mul(POWER_SCALE));
+
+        uint _initPower = initPower;
+        if (roundId <= 4) {
+            _initPower = 10000;
+        }
+
+        uint leftPower = roundInfo[roundId].leftPower.add(_initPower.mul(POWER_SCALE));
+        uint rightPower = roundInfo[roundId].rightPower.add(_initPower.mul(POWER_SCALE));
         uint winnerCode = random.mod(leftPower.add(rightPower));
 
         uint baseDamage = uint(keccak256(abi.encode(random))).mod(5);

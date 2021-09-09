@@ -18,6 +18,12 @@ contract AlchemyStorage {
 
     uint256 public priceFactor1;
 
+    uint256 public maxBoosting;
+
+    uint256 public maxStakeZoo;
+
+    uint256 public dropCostPerLevel;
+
     address public priceOracle;
 
     address public buyToken;
@@ -37,6 +43,12 @@ contract AlchemyStorage {
         uint256 lastRewardBlock; // Last block number that drops distribution occurs.
     }
 
+    struct CraftInfo {
+        uint256 elixirId;
+        uint256 tokenId0;
+        uint256 tokenId1;
+    }
+
     // tokenId => ElixirInfo
     mapping(uint256 => ElixirInfo) public elixirInfoMap;
 
@@ -45,6 +57,9 @@ contract AlchemyStorage {
 
     // user => UserInfo
     mapping(address => UserInfo) public userInfoMap;
+
+    // user => CraftInfo
+    mapping(address => CraftInfo) public pendingCraft;
 
     uint256 public elixirBaseScore;
 }

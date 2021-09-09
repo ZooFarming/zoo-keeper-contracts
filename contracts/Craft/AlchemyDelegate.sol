@@ -79,6 +79,11 @@ contract AlchemyDelegate is
 
     event BurnNFT(uint256 indexed tokenId, address indexed nftToken);
 
+    modifier onlyAdmin() {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "only admin");
+        _;
+    }
+
     function initialize(
         address admin,
         address _elixirNFT,
@@ -98,26 +103,30 @@ contract AlchemyDelegate is
         zooNFT = _zooNFT;
         priceFactor0 = 1;
         priceFactor1 = 100; //1%
+
+        maxBoosting = 200 * BOOST_SCALE;
+        maxStakeZoo = 1000000 ether;
+
+        dropCostPerLevel = 30 ether;
     }
 
-    function configDropRate(uint256 _dropRate) external {
-        hasRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    function configDropRate(uint256 _dropRate) external onlyAdmin {
         baseRatePerBlock = _dropRate;
     }
 
-    function configPriceFactor(uint256 _factor0, uint256 _factor1) external {
-        hasRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    function configPriceFactor(uint256 _factor0, uint256 _factor1) external onlyAdmin {
         priceFactor0 = _factor0;
         priceFactor1 = _factor1;
     }
 
     function getElixirPrice() public view returns (uint256) {
+        // get golden price from NFTFactory
         uint256 goldenPrice = IGoldenOracle(priceOracle).queryGoldenPrice();
         return goldenPrice.mul(priceFactor0).div(priceFactor1);
     }
 
     function maxPendingDrops(address user, uint256 dropReward)
-        public
+        internal
         view
         returns (uint256)
     {
@@ -135,7 +144,15 @@ contract AlchemyDelegate is
 
     // scaled 1e12
     function getUserBoosting(address user) public view returns (uint256) {
-        return BOOST_SCALE; // TODO: not finish
+        UserInfo storage user = userInfoMap[msg.sender];
+        uint staked = user.amount;
+        if (staked > maxStakeZoo) {
+            staked = maxStakeZoo;
+        }
+
+        uint extra = staked.mul(maxBoosting).div(maxStakeZoo);
+
+        return BOOST_SCALE.add(extra);
     }
 
     function pendingDrops(address _user) public view returns (uint256) {
@@ -156,7 +173,7 @@ contract AlchemyDelegate is
         return 0;
     }
 
-    function updateDrops(address _user) public {
+    function updateDrops(address _user) internal {
         uint256 pending = pendingDrops(_user);
         uint256 tokenId = userElixirMap[_user];
         if (tokenId != 0) {
@@ -269,7 +286,21 @@ contract AlchemyDelegate is
         uint256 elixirId,
         uint256 tokenId0,
         uint256 tokenId1
-    ) external {}
+    ) external {
+        // check NFT
+        require(IERC721(zooNFT).ownerOf(tokenId0) == msg.sender, "tokenId0 is not yours");
+        require(IERC721(zooNFT).ownerOf(tokenId1) == msg.sender, "tokenId1 is not yours");
+        require(IERC721(elixirNFT).ownerOf(elixirId) == msg.sender, "elixirId is not yours");
+        // check elixir
+        bool can;
+        (can,,) = getCraftProbability(elixirId, tokenId0, tokenId1);
+        require(can, "can not craft NFT");
+
+        pendingCraft[msg.sender].elixirId = elixirId;
+        pendingCraft[msg.sender].tokenId0 = tokenId0;
+        pendingCraft[msg.sender].tokenId1 = tokenId1;
+        requestRandom(address(this), uint(msg.sender));
+    }
 
     function burnZooNft(uint256 tokenId) internal {
         IERC721(zooNFT).safeTransferFrom(msg.sender, address(0x0f), tokenId);
@@ -284,11 +315,17 @@ contract AlchemyDelegate is
 
         ICraftNFT.TokenInfo memory t0 = ICraftNFT(zooNFT).tokenInfo(nftId0);
         ICraftNFT.TokenInfo memory t1 = ICraftNFT(zooNFT).tokenInfo(nftId1);
-        if (info.level < t0.level || info.level < t1.level) {
+        if (info.level < t0.level || info.level < t1.level || t0.level != t1.level) {
             return (false, 0, 0);
         }
 
         // TODO: CHECK DROPS count
+        ElixirInfo storage info = elixirInfoMap[tokenId];
+        uint drops = info.drops;
+        uint need = dropCostPerLevel.mul(t0.level);
+        if (need > drops) {
+            return (false, 0, 0);
+        }
 
         return getLevelProbability(t0.level, t0.category, t0.item, t1.level, t1.category, t1.item);
     }
@@ -312,6 +349,7 @@ contract AlchemyDelegate is
     }
 
     function randomCallback(uint256 _id, uint256 _randomSeed) external override onlyRandomOracle {
+        address user = address(_id);
 
     }
 

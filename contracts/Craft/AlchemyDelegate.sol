@@ -288,9 +288,9 @@ contract AlchemyDelegate is
         uint256 tokenId1
     ) external {
         // check NFT
-        require(IERC721(zooNFT).ownerOf(tokenId0) == msg.sender, "tokenId0 is not yours");
-        require(IERC721(zooNFT).ownerOf(tokenId1) == msg.sender, "tokenId1 is not yours");
-        require(IERC721(elixirNFT).ownerOf(elixirId) == msg.sender, "elixirId is not yours");
+        IERC721(zooNFT).safeTransferFrom(msg.sender, address(this), tokenId0);
+        IERC721(zooNFT).safeTransferFrom(msg.sender, address(this), tokenId1);
+        IERC721(elixirNFT).safeTransferFrom(msg.sender, address(this), elixirId);
         // check elixir
         bool can;
         (can,,) = getCraftProbability(elixirId, tokenId0, tokenId1);
@@ -330,7 +330,7 @@ contract AlchemyDelegate is
         return getLevelProbability(t0.level, t0.category, t0.item, t1.level, t1.category, t1.item);
     }
 
-    function getLevelProbability(uint level0, uint category0, uint class0, uint level1, uint category1, uint class1) public pure returns (bool can, uint score0, uint score1) {
+    function getLevelProbability(uint level0, uint category0, uint class0, uint level1, uint category1, uint class1) internal pure returns (bool can, uint score0, uint score1) {
         if (level0 != level1) {
             return (false, 0, 0);
         }
@@ -341,7 +341,7 @@ contract AlchemyDelegate is
 
     // Return reward multiplier over the given _from to _to block.
     function getMultiplier(uint256 _from, uint256 _to)
-        public
+        internal
         pure
         returns (uint256)
     {
@@ -350,7 +350,13 @@ contract AlchemyDelegate is
 
     function randomCallback(uint256 _id, uint256 _randomSeed) external override onlyRandomOracle {
         address user = address(_id);
+        CraftInfo storage ci = pendingCraft[user];
+        require(ci.elixirId != 0 && ci.tokenId0 != 0 && ci.tokenId1 != 0, "user not found");
 
+
+
+        // finish clear
+        delete pendingCraft[user];
     }
 
 }

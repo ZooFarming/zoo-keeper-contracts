@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "../interfaces/IBurnToken.sol";
+import "../RandomBeacon/RandomBase.sol";
 
 import "./AlchemyStorage.sol";
 
@@ -44,6 +45,7 @@ contract AlchemyDelegate is
     Initializable,
     AccessControl,
     ERC721Holder,
+    RandomBase,
     AlchemyStorage
 {
     using SafeERC20 for IERC20;
@@ -82,10 +84,12 @@ contract AlchemyDelegate is
         address _elixirNFT,
         address _buyToken,
         address _priceOracle,
-        address _zooNFT
+        address _zooNFT,
+        address randomOracle_
     ) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
-        _setupRole(DEFAULT_ADMIN_ROLE, admin);
+
+        initRandomOracle(randomOracle_);
 
         baseRatePerBlock = 165343915343915; // 20 DROPs per week for each user = 20e18 / 7 / 24 / 3600 * 5
         priceOracle = _priceOracle;
@@ -131,7 +135,7 @@ contract AlchemyDelegate is
 
     // scaled 1e12
     function getUserBoosting(address user) public view returns (uint256) {
-        return BOOST_SCALE;
+        return BOOST_SCALE; // TODO: not finish
     }
 
     function pendingDrops(address _user) public view returns (uint256) {
@@ -260,6 +264,7 @@ contract AlchemyDelegate is
         emit WithdrawZoo(msg.sender, amount);
     }
 
+    // TODO: not finish
     function nftCraft(
         uint256 elixirId,
         uint256 tokenId0,
@@ -305,4 +310,9 @@ contract AlchemyDelegate is
     {
         return _to.sub(_from);
     }
+
+    function randomCallback(uint256 _id, uint256 _randomSeed) external override onlyRandomOracle {
+
+    }
+
 }

@@ -16,7 +16,7 @@ import "./AlchemyStorage.sol";
 interface IElixirNFT {
     function mint(uint256 tokenId, uint256 tokenType) external;
 
-    function burn(uint256 tokenId) external;
+    // function burn(uint256 tokenId) external;
 }
 
 interface ICraftNFT {
@@ -35,6 +35,9 @@ interface ICraftNFT {
         external
         view
         returns (TokenInfo memory);
+    
+    function mint(uint tokenId, uint _level, uint _category, uint _item, uint _random) external;
+    function totalSupply() external view returns (uint);
 }
 
 interface IGoldenOracle {
@@ -143,8 +146,8 @@ contract AlchemyDelegate is
     }
 
     // scaled 1e12
-    function getUserBoosting(address user) public view returns (uint256) {
-        UserInfo storage user = userInfoMap[msg.sender];
+    function getUserBoosting(address _user) public view returns (uint256) {
+        UserInfo storage user = userInfoMap[_user];
         uint staked = user.amount;
         if (staked > maxStakeZoo) {
             staked = maxStakeZoo;
@@ -315,12 +318,10 @@ contract AlchemyDelegate is
 
         ICraftNFT.TokenInfo memory t0 = ICraftNFT(zooNFT).tokenInfo(nftId0);
         ICraftNFT.TokenInfo memory t1 = ICraftNFT(zooNFT).tokenInfo(nftId1);
-        if (info.level < t0.level || info.level < t1.level || t0.level != t1.level) {
+        if (info.level < t0.level || t0.level != t1.level || t0.level >= 4) {
             return (false, 0, 0);
         }
 
-        // TODO: CHECK DROPS count
-        ElixirInfo storage info = elixirInfoMap[tokenId];
         uint drops = info.drops;
         uint need = dropCostPerLevel.mul(t0.level);
         if (need > drops) {
@@ -353,7 +354,38 @@ contract AlchemyDelegate is
         CraftInfo storage ci = pendingCraft[user];
         require(ci.elixirId != 0 && ci.tokenId0 != 0 && ci.tokenId1 != 0, "user not found");
 
+        bool can;
+        uint score0;
+        uint score1;
+        (can, score0, score1) = getCraftProbability(ci.elixirId, ci.tokenId0, ci.tokenId1);
+        require(can, "can not craft NFT");
 
+        uint random = uint(keccak256(abi.encode(_randomSeed)));
+        random = random.mod(score0.add(score1));
+
+        ICraftNFT.TokenInfo memory t0 = ICraftNFT(zooNFT).tokenInfo(ci.tokenId0);
+        ICraftNFT.TokenInfo memory t1 = ICraftNFT(zooNFT).tokenInfo(ci.tokenId1);
+
+        uint level = t0.level + 1;
+        uint category;
+        uint item;
+        
+        if (random < score0) {
+            category = t1.category;
+            item = t1.item;
+        } else {
+            category = t0.category;
+            item = t0.item;
+        }
+
+        uint totalSupply = ICraftNFT(zooNFT).totalSupply();
+        totalSupply = totalSupply + 1;
+
+        burnZooNft(ci.tokenId0);
+        burnZooNft(ci.tokenId1);
+
+        ICraftNFT(zooNFT).mint(totalSupply, level, category, item, random.mod(300));
+        IERC721(zooNFT).safeTransferFrom(address(this), user, totalSupply);
 
         // finish clear
         delete pendingCraft[user];

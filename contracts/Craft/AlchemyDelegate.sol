@@ -284,7 +284,6 @@ contract AlchemyDelegate is
         emit WithdrawZoo(msg.sender, amount);
     }
 
-    // TODO: not finish
     function nftCraft(
         uint256 elixirId,
         uint256 tokenId0,

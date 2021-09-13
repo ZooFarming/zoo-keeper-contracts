@@ -284,7 +284,7 @@ contract("craft", ([alice, lucy, jack, tom, molin, dev]) => {
     await buy();
 
     //uint elixirId, uint nftId0, uint nftId1
-    let ret = await alchemy.getCraftProbability(1, 1, 2);
+    let ret = await alchemy.getCraftProbability(1, 1, 2, alice);
     console.log('ret 1', JSON.stringify(ret));
     assert.strictEqual(ret.can.toString(), 'false', 21);
 
@@ -302,7 +302,7 @@ contract("craft", ([alice, lucy, jack, tom, molin, dev]) => {
       await time.advanceBlock();
     }
 
-    ret = await alchemy.getCraftProbability(1, 1, 2);
+    ret = await alchemy.getCraftProbability(1, 1, 2, alice);
     console.log('ret 2', JSON.stringify(ret));
     assert.strictEqual(ret.can.toString(), 'true', 21);
 

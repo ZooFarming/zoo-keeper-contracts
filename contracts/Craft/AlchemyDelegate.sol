@@ -294,9 +294,12 @@ contract AlchemyDelegate is
         IERC721(zooNFT).safeTransferFrom(msg.sender, address(this), tokenId1);
         IERC721(elixirNFT).safeTransferFrom(msg.sender, address(this), elixirId);
         // check elixir
+        updateDrops(msg.sender);
+
         bool can;
-        (can,,) = getCraftProbability(elixirId, tokenId0, tokenId1);
+        (can,,) = getCraftProbability(elixirId, tokenId0, tokenId1, msg.sender);
         require(can, "can not craft NFT");
+
 
         pendingCraft[msg.sender].elixirId = elixirId;
         pendingCraft[msg.sender].tokenId0 = tokenId0;
@@ -309,22 +312,22 @@ contract AlchemyDelegate is
         emit BurnNFT(tokenId, zooNFT);
     }
 
-    function getCraftProbability(uint elixirId, uint nftId0, uint nftId1) public view returns (bool can, uint score0, uint score1) {
+    function getCraftProbability(uint elixirId, uint nftId0, uint nftId1, address _user) public view returns (bool can, uint score0, uint score1) {
         ElixirInfo storage info = elixirInfoMap[elixirId];
-        if (bytes(info.name).length == 0 || elixirId == 0 || nftId0 == 0 || nftId1 == 0) {
-            return (false, 0, 0);
+        if (bytes(info.name).length == 0 || elixirId == 0 || nftId0 == 0 || nftId1 == 0 || nftId0 == nftId1) {
+            return (false, 0, 1);
         }
 
         ICraftNFT.TokenInfo memory t0 = ICraftNFT(zooNFT).tokenInfo(nftId0);
         ICraftNFT.TokenInfo memory t1 = ICraftNFT(zooNFT).tokenInfo(nftId1);
         if (info.level < t0.level || t0.level != t1.level || t0.level >= 4) {
-            return (false, 0, 0);
+            return (false, 1, info.level*10+t0.level);
         }
 
-        uint drops = info.drops;
+        uint drops = info.drops + pendingDrops(_user);
         uint need = dropCostPerLevel.mul(t0.level);
         if (need > drops) {
-            return (false, 0, 0);
+            return (false, 2, need);
         }
 
         return getLevelProbability(t0.level, t0.category, t0.item, t1.level, t1.category, t1.item);
@@ -332,7 +335,7 @@ contract AlchemyDelegate is
 
     function getLevelProbability(uint level0, uint category0, uint class0, uint level1, uint category1, uint class1) internal pure returns (bool can, uint score0, uint score1) {
         if (level0 != level1) {
-            return (false, 0, 0);
+            return (false, 3, 0);
         }
         can = true;
         score0 = level0**2 * 100 + category0**2*200 + class0**2*200;
@@ -353,10 +356,12 @@ contract AlchemyDelegate is
         CraftInfo storage ci = pendingCraft[user];
         require(ci.elixirId != 0 && ci.tokenId0 != 0 && ci.tokenId1 != 0, "user not found");
 
+        updateDrops(user);
+
         bool can;
         uint score0;
         uint score1;
-        (can, score0, score1) = getCraftProbability(ci.elixirId, ci.tokenId0, ci.tokenId1);
+        (can, score0, score1) = getCraftProbability(ci.elixirId, ci.tokenId0, ci.tokenId1, user);
         require(can, "can not craft NFT");
 
         uint random = uint(keccak256(abi.encode(_randomSeed)));

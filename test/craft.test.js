@@ -51,6 +51,7 @@ contract("craft", ([alice, lucy, jack, tom, molin, dev]) => {
     await zooNft.setNFTFactory(dev, {from: dev}); 
 
     await elixirNft.setNFTFactory(alchemy.address, {from: dev});
+    await elixirNft.setNFTFactory(dev, {from: dev});
 
     zooToken.approve(alchemy.address, '10000000000000000', {from: alice});
     zooToken.approve(alchemy.address, '1000000', {from: lucy});
@@ -84,7 +85,7 @@ contract("craft", ([alice, lucy, jack, tom, molin, dev]) => {
     await elixirNft.setApprovalForAll(alchemy.address, true, {from: alice});
     let ret = await alchemy.depositElixir(1, {from: alice});
     expectEvent(ret, 'DepositElixir', {user: alice, tokenId: '1'});
-    expectRevert(alchemy.depositElixir(2, {from: alice}), "already exist one Elixir");
+    await expectRevert(alchemy.depositElixir(2, {from: alice}), "already exist one Elixir");
   }
 
   it("should success when deposit elixir", async ()=>{
@@ -95,7 +96,7 @@ contract("craft", ([alice, lucy, jack, tom, molin, dev]) => {
   const withdrawElixir = async () => {
     let ret = await alchemy.withdrawElixir({from: alice});
     expectEvent(ret, 'WithdrawElixir', {user: alice, tokenId: '1'});
-    expectRevert(alchemy.withdrawElixir({from: alice}), "no Elixir");
+    await expectRevert(alchemy.withdrawElixir({from: alice}), "no Elixir");
   }
 
   it("should success when withdrawElixir", async () => {
@@ -172,7 +173,7 @@ contract("craft", ([alice, lucy, jack, tom, molin, dev]) => {
     await alchemy.configDropRate('0x' + Number(10e18).toString(16), {from: dev});
     await depositElixir();
 
-    expectRevert(alchemy.upgradeElixir({from: alice}), 'Elixir not fullfill');
+    await expectRevert(alchemy.upgradeElixir({from: alice}), 'Elixir not fullfill');
 
     for (let i=0; i<20; i++) {
       await time.advanceBlock();
@@ -219,11 +220,18 @@ contract("craft", ([alice, lucy, jack, tom, molin, dev]) => {
       await time.advanceBlock();
     }
 
-    expectRevert(alchemy.upgradeElixir({from: alice}), 'Already Level max');
+    ret = await alchemy.upgradeElixir({from: alice});
+    expectEvent(ret, 'UpgradeElixir', {user: alice, levelFrom: '4', levelTo: '5'});
+
+    for (let i=0; i<10; i++) {
+      await time.advanceBlock();
+    }
+
+    await expectRevert(alchemy.upgradeElixir({from: alice}), 'Already Level max');
   });
 
-  it.only("should success when deposit ZOO", async () => {
-    expectRevert(alchemy.depositZoo(100, {from: alice}), 'no Elixir');
+  it("should success when deposit/withdraw ZOO", async () => {
+    await expectRevert(alchemy.depositZoo(100, {from: alice}), 'no Elixir');
     await buy();
     await depositElixir();
     let ret = await alchemy.depositZoo(100, {from: alice});
@@ -234,7 +242,71 @@ contract("craft", ([alice, lucy, jack, tom, molin, dev]) => {
     ret = await alchemy.withdrawZoo({from: alice});
     expectEvent(ret, 'WithdrawZoo', {user: alice, amount: '100'});
 
-    expectRevert(alchemy.withdrawZoo({from: alice}), 'No zoo to withdraw');
+    await expectRevert(alchemy.withdrawZoo({from: alice}), 'No zoo to withdraw');
+  });
+
+  it("should success when getUserBoosting", async () => {
+    await buy();
+    await depositElixir();
+    await zooToken.mint(alice, '2000000000000000000');
+    await zooToken.approve(alchemy.address, '2000000000000000000', {from: alice});
+    let ret = await alchemy.depositZoo('1000000000000000000', {from: alice});
+    expectEvent(ret, 'DepositZoo', {user: alice, amount: '1000000000000000000'});
+    ret = await alchemy.getUserBoosting(alice);
+    assert.strictEqual(ret.toString(), '1000200000000', 20);
+
+    await zooToken.mint(alice, '10000000000000000000000');
+    await zooToken.approve(alchemy.address, '10000000000000000000000', {from: alice});
+    ret = await alchemy.depositZoo('10000000000000000000000', {from: alice});
+    expectEvent(ret, 'DepositZoo', {user: alice, amount: '10000000000000000000000'});
+    ret = await alchemy.getUserBoosting(alice);
+    assert.strictEqual(ret.toString(), '3000200000000', 20);
+
+    let max2 = '2000000000000000000000000';
+    await zooToken.mint(alice, max2);
+    await zooToken.approve(alchemy.address, max2, {from: alice});
+    ret = await alchemy.depositZoo(max2, {from: alice});
+    expectEvent(ret, 'DepositZoo', {user: alice, amount: max2});
+    ret = await alchemy.getUserBoosting(alice);
+    assert.strictEqual(ret.toString(), '201000000000000', 20);
+  });
+
+  it.only("should success when getCraftProbability", async () => {
+    // uint256 tokenId,
+    // uint256 _level,
+    // uint256 _category,
+    // uint256 _item,
+    // uint256 _random
+    await zooNft.mint(1, 1, 1, 1, 0, {from: dev});
+    await zooNft.mint(2, 1, 1, 1, 0, {from: dev});
+    await elixirNft.setMultiNftURI([0,1,2,3,4,5],['abc','abc','abc','abc','abc','abc'], {from: dev});
+
+    await buy();
+
+    //uint elixirId, uint nftId0, uint nftId1
+    let ret = await alchemy.getCraftProbability(1, 1, 2);
+    console.log('ret 1', JSON.stringify(ret));
+    assert.strictEqual(ret.can.toString(), 'false', 21);
+
+    await alchemy.configDropRate('0x' + Number(10e18).toString(16), {from: dev});
+    await depositElixir();
+
+    for (let i=0; i<10; i++) {
+      await time.advanceBlock();
+    }
+
+    ret = await alchemy.upgradeElixir({from: alice});
+    expectEvent(ret, 'UpgradeElixir', {user: alice, levelFrom: '0', levelTo: '1'});
+
+    for (let i=0; i<10; i++) {
+      await time.advanceBlock();
+    }
+
+    ret = await alchemy.getCraftProbability(1, 1, 2);
+    console.log('ret 2', JSON.stringify(ret));
+    assert.strictEqual(ret.can.toString(), 'true', 21);
+
+
   });
 
 });

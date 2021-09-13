@@ -25,6 +25,7 @@ contract ElixirNFT is ERC721Burnable, Initializable, AccessControl {
         grantRole(NFT_FACTORY_ROLE, _nftFactory);
     }
 
+    // tokenType: ELIXIR_SHAPES total 30
     function mint(uint256 tokenId, uint256 tokenType) external {
         require(hasRole(NFT_FACTORY_ROLE, msg.sender));
         _safeMint(msg.sender, tokenId);

@@ -280,7 +280,7 @@ contract AlchemyDelegate is
         updateDrops(msg.sender);
         uint256 amount = user.amount;
         user.amount = 0;
-        IERC20(buyToken).safeTransferFrom(address(this), msg.sender, amount);
+        IERC20(buyToken).safeTransfer(msg.sender, amount);
         emit WithdrawZoo(msg.sender, amount);
     }
 

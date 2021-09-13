@@ -167,7 +167,7 @@ contract("craft", ([alice, lucy, jack, tom, molin, dev]) => {
 
   });
 
-  it.only("should success when upgrade elixir", async () => {
+  it("should success when upgrade elixir", async () => {
     await buy();
     await alchemy.configDropRate('0x' + Number(10e18).toString(16), {from: dev});
     await depositElixir();
@@ -220,6 +220,21 @@ contract("craft", ([alice, lucy, jack, tom, molin, dev]) => {
     }
 
     expectRevert(alchemy.upgradeElixir({from: alice}), 'Already Level max');
+  });
+
+  it.only("should success when deposit ZOO", async () => {
+    expectRevert(alchemy.depositZoo(100, {from: alice}), 'no Elixir');
+    await buy();
+    await depositElixir();
+    let ret = await alchemy.depositZoo(100, {from: alice});
+    expectEvent(ret, 'DepositZoo', {user: alice, amount: '100'});
+
+    assert.strictEqual((await zooToken.balanceOf(alice)).toString(), '999870', 20);
+
+    ret = await alchemy.withdrawZoo({from: alice});
+    expectEvent(ret, 'WithdrawZoo', {user: alice, amount: '100'});
+
+    expectRevert(alchemy.withdrawZoo({from: alice}), 'No zoo to withdraw');
   });
 
 });

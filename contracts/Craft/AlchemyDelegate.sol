@@ -82,6 +82,10 @@ contract AlchemyDelegate is
 
     event BurnNFT(uint256 indexed tokenId, address indexed nftToken);
 
+    event RequestCraft(address indexed user, uint256 elixirId, uint256 tokenId0, uint tokenId1);
+
+    event CraftDone(address indexed user, uint256 elixirId, uint256 tokenId0, uint tokenId1, uint newTokenId, uint newLevel, uint newCategory, uint newItem);
+
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "only admin");
         _;
@@ -305,10 +309,11 @@ contract AlchemyDelegate is
         pendingCraft[msg.sender].tokenId0 = tokenId0;
         pendingCraft[msg.sender].tokenId1 = tokenId1;
         requestRandom(address(this), uint(msg.sender));
+        emit RequestCraft(msg.sender, elixirId, tokenId0, tokenId1);
     }
 
     function burnZooNft(uint256 tokenId) internal {
-        IERC721(zooNFT).safeTransferFrom(msg.sender, address(0x0f), tokenId);
+        IERC721(zooNFT).safeTransferFrom(address(this), address(0x0f), tokenId);
         emit BurnNFT(tokenId, zooNFT);
     }
 
@@ -331,6 +336,13 @@ contract AlchemyDelegate is
         }
 
         return getLevelProbability(t0.level, t0.category, t0.item, t1.level, t1.category, t1.item);
+    }
+
+    function useDrops(uint elixirId, uint tokenId) internal {
+        ElixirInfo storage info = elixirInfoMap[elixirId];
+        ICraftNFT.TokenInfo memory t0 = ICraftNFT(zooNFT).tokenInfo(tokenId);
+        uint need = dropCostPerLevel.mul(t0.level);
+        info.drops = info.drops.sub(need);
     }
 
     function getLevelProbability(uint level0, uint category0, uint class0, uint level1, uint category1, uint class1) internal pure returns (bool can, uint score0, uint score1) {
@@ -364,6 +376,8 @@ contract AlchemyDelegate is
         (can, score0, score1) = getCraftProbability(ci.elixirId, ci.tokenId0, ci.tokenId1, user);
         require(can, "can not craft NFT");
 
+        useDrops(ci.elixirId, ci.tokenId0);
+
         uint random = uint(keccak256(abi.encode(_randomSeed)));
         random = random.mod(score0.add(score1));
 
@@ -393,6 +407,8 @@ contract AlchemyDelegate is
 
         // finish clear
         delete pendingCraft[user];
+
+        emit CraftDone(user, ci.elixirId, ci.tokenId0, ci.tokenId1, totalSupply, level, category, item);
     }
 
 }

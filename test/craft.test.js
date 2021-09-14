@@ -271,7 +271,7 @@ contract("craft", ([alice, lucy, jack, tom, molin, dev]) => {
     assert.strictEqual(ret.toString(), '201000000000000', 20);
   });
 
-  it.only("should success when getCraftProbability", async () => {
+  it("should success when getCraftProbability", async () => {
     // uint256 tokenId,
     // uint256 _level,
     // uint256 _category,
@@ -285,7 +285,7 @@ contract("craft", ([alice, lucy, jack, tom, molin, dev]) => {
 
     //uint elixirId, uint nftId0, uint nftId1
     let ret = await alchemy.getCraftProbability(1, 1, 2, alice);
-    console.log('ret 1', JSON.stringify(ret));
+    // console.log('ret 1', JSON.stringify(ret));
     assert.strictEqual(ret.can.toString(), 'false', 21);
 
     await alchemy.configDropRate('0x' + Number(10e18).toString(16), {from: dev});
@@ -303,10 +303,82 @@ contract("craft", ([alice, lucy, jack, tom, molin, dev]) => {
     }
 
     ret = await alchemy.getCraftProbability(1, 1, 2, alice);
-    console.log('ret 2', JSON.stringify(ret));
+    // console.log('ret 2', JSON.stringify(ret));
     assert.strictEqual(ret.can.toString(), 'true', 21);
 
+    await zooNft.mint(3, 1, 2, 1, 0, {from: dev});
+    await zooNft.mint(4, 1, 1, 1, 0, {from: dev});
 
+    ret = await alchemy.getCraftProbability(1, 3, 4, alice);
+    // console.log('ret 2', JSON.stringify(ret));
+    assert.strictEqual(ret.can.toString(), 'true', 21);
+    assert.strictEqual(ret.score0.toString(), '1100', 21);
+    assert.strictEqual(ret.score1.toString(), '500', 21);
+
+  });
+
+  it("should success when craft", async () => {
+    await zooNft.mint(1, 1, 1, 1, 0, {from: dev});
+    await zooNft.mint(2, 1, 1, 1, 0, {from: dev});
+    await elixirNft.setMultiNftURI([0,1,2,3,4,5],['abc','abc','abc','abc','abc','abc'], {from: dev});
+
+    await buy();
+
+    await alchemy.configDropRate('0x' + Number(10e18).toString(16), {from: dev});
+    await depositElixir();
+
+    for (let i=0; i<10; i++) {
+      await time.advanceBlock();
+    }
+
+    let ret = await alchemy.upgradeElixir({from: alice});
+    expectEvent(ret, 'UpgradeElixir', {user: alice, levelFrom: '0', levelTo: '1'});
+
+    for (let i=0; i<10; i++) {
+      await time.advanceBlock();
+    }
+
+    await withdrawElixir();
+
+    ret = await alchemy.elixirInfoMap(1);
+    assert.strictEqual(ret.drops.toString(), '100000000000000000000', 12);
+
+    await zooNft.safeTransferFrom(dev, alice, 1, {from: dev});
+    await zooNft.safeTransferFrom(dev, alice, 2, {from: dev});
+
+    await zooNft.setApprovalForAll(alchemy.address, true, {from: alice});
+    await elixirNft.setApprovalForAll(alchemy.address, true, {from: alice});
+
+    ret = await alchemy.nftCraft(1, 1, 2);
+    // console.log('ret', ret.receipt.rawLogs);
+    expectEvent(ret, 'RequestCraft', {elixirId: '1', tokenId0: '1', tokenId1: '2'});
+
+    ret = await alchemy.elixirInfoMap(1);
+    assert.strictEqual(ret.drops.toString(), '100000000000000000000', 12);
+
+    ret = await zooNft.ownerOf(1);
+    // console.log('ret1', ret);
+    assert.strictEqual(ret, alchemy.address, 12);
+    ret = await zooNft.ownerOf(2);
+    // console.log('ret2', ret);
+    assert.strictEqual(ret, alchemy.address, 12);
+    expectRevert(zooNft.ownerOf(3), "owner query for nonexistent token");
+
+    ret = await randomBeacon.sendSeed(alchemy.address, alice, 1, {from: dev});
+    // console.log('ret', ret);
+
+    ret = await alchemy.elixirInfoMap(1);
+    assert.strictEqual(ret.drops.toString(), '70000000000000000000', 12);
+
+    ret = await zooNft.ownerOf(1);
+    // console.log('ret4', ret);
+    assert.strictEqual(ret, '0x000000000000000000000000000000000000000F', 12);
+    ret = await zooNft.ownerOf(2);
+    // console.log('ret5', ret);
+    assert.strictEqual(ret, '0x000000000000000000000000000000000000000F', 12);
+    ret = await zooNft.ownerOf(3);
+    // console.log('ret6', ret);
+    assert.strictEqual(ret, alice, 12);
   });
 
 });

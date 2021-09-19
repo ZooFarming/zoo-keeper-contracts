@@ -28,6 +28,7 @@ module.exports = async function (deployer) {
   //--------------------
 
   await deployer.deploy(ElixirNFT);
+  await deployer.deploy(RandomBeacon);
 
   let elixirNFT = await ElixirNFT.deployed();
 

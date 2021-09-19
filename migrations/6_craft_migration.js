@@ -1,7 +1,8 @@
 // const Migrations = artifacts.require("Migrations");
 const ElixirNFT = artifacts.require("ElixirNFT");
-const AlchemyStorage = artifacts.require("AlchemyStorage");
 const Alchemy = artifacts.require('Alchemy');
+const ZooKeeperProxy = artifacts.require('ZooKeeperProxy');
+const RandomBeacon = artifacts.require('RandomBeacon');
 
 module.exports = async function (deployer) {
   if (deployer.network === 'development' || deployer.network === 'coverage') {
@@ -9,50 +10,70 @@ module.exports = async function (deployer) {
     return;
   }
   // await deployer.deploy(KeepsakesCreatorDelegate);
-  return;
+  // return;
 
   let deployerAddr = deployer.provider.addresses[0];
   console.log('deployerAddr', deployerAddr);
   //TODO: TESTNET CONFIG----------
-  // let proxyAdmin = '0x5560aF0F46D00FCeA88627a9DF7A4798b1b10961';
-  // let admin = '0x4Cf0A877E906DEaD748A41aE7DA8c220E4247D9e';
+  let proxyAdmin = '0x5560aF0F46D00FCeA88627a9DF7A4798b1b10961';
+  let admin = '0x4Cf0A877E906DEaD748A41aE7DA8c220E4247D9e';
+  let zooToken = '0x890589dC8BD3F973dcAFcB02b6e1A133A76C8135';
+  let zooNFT = '0xbCF9F4fae90dA7c4BB05DA6f9E9A9A39dc5Ce979';
+  let nftFactory = '0x40B4653a2263c9A6634018365Fa5aa5a81E0b0Bd';
+  let rbOperator = '0x4BD2c90F87d4880183126e24e9c2888E7DbeF17b';
   //--------------------
   //TODO: MAINNET CONFIG----------
-  let proxyAdmin = '0xa206e4858849f70c3d684e854e7C126EF7baB32e';
-  let admin = '0x83f83439Cc3274714A7dad32898d55D17f7C6611';
+  // let proxyAdmin = '0xa206e4858849f70c3d684e854e7C126EF7baB32e';
+  // let admin = '0x83f83439Cc3274714A7dad32898d55D17f7C6611';
   //--------------------
 
-  await deployer.deploy(KeepsakesNFT);
+  await deployer.deploy(ElixirNFT);
 
-  let nft = await KeepsakesNFT.deployed();
+  let elixirNFT = await ElixirNFT.deployed();
 
+  let randomBeacon = await RandomBeacon.deployed();
 
-  await deployer.deploy(KeepsakesCreatorDelegate);
+  await randomBeacon.initialize(admin, rbOperator);
 
-  let creatorDelegate = await KeepsakesCreatorDelegate.deployed();
+  await deployer.deploy(Alchemy);
 
-  await deployer.deploy(ZooKeeperProxy, creatorDelegate.address, proxyAdmin, '0x');
+  let alchemyDelegate = await Alchemy.deployed();
 
-  let creator = await KeepsakesCreatorDelegate.at((await ZooKeeperProxy.deployed()).address);
+  await deployer.deploy(ZooKeeperProxy, alchemyDelegate.address, proxyAdmin, '0x');
+
+  let alchemy = await alchemyDelegate.at((await ZooKeeperProxy.deployed()).address);
   
-  await creator.initialize(deployerAddr, nft.address);
+  // address admin,
+  // address _elixirNFT,
+  // address _buyToken,
+  // address _priceOracle,
+  // address _zooNFT,
+  // address randomOracle_
+  await alchemy.initialize(deployerAddr, elixirNFT.address, zooToken, nftFactory, zooNFT, randomBeacon.address);
 
-  await nft.initialize(deployerAddr);
+  await elixirNFT.initialize(deployerAddr);
 
-  await nft.setNFTFactory(creator.address);
+  await elixirNFT.setNFTFactory(alchemy.address);
 
-  // TODO:
-  await creator.addAuthor('0xd3fe1259A31285786F59Fb80c4c7065403071591'); // PHX creator
+  let tokenTypes = [];
+  let metaJsons = [];
+  for (let i=0; i<34; i++) {
+    tokenTypes.push(i);
+    metaJsons.push(`https://graph.wanswap.finance/ipfs/QmSkmbsimjqA3CF2BNgu9RXboxfRohDTYJcp8TXLYRFABV/${i+1}.json`);
+  }
+  await elixirNFT.setMultiNftURI(tokenTypes, metaJsons);
 
-  await creator.grantRole('0x00', admin);
-  await nft.grantRole('0x00', admin);
+  await alchemy.grantRole('0x00', admin);
+  await elixirNFT.grantRole('0x00', admin);
 
   if (deployerAddr.toLowerCase() !== admin.toLowerCase()) {
     console.log('renounceRole:', deployerAddr);
-    await creator.renounceRole('0x00', deployerAddr);
-    await nft.renounceRole('0x00', deployerAddr);
+    await alchemy.renounceRole('0x00', deployerAddr);
+    await elixirNFT.renounceRole('0x00', deployerAddr);
   }
 
-  console.log('keepsakes creator:', creator.address);
+  console.log('alchemy:', alchemy.address);
+  console.log('elixirNFT:', elixirNFT.address);
+  console.log('randomBeacon:', randomBeacon.address);
 
 }

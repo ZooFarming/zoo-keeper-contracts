@@ -1,7 +1,7 @@
 const ZooToken = artifacts.require('ZooToken');
 const ZooNFT = artifacts.require('ZooNFT');
 const ElixirNFT = artifacts.require('ElixirNFT');
-const AlchemyDelegate = artifacts.require('AlchemyDelegate');
+const Alchemy = artifacts.require('Alchemy');
 const TestGoldenPriceOracle = artifacts.require('TestGoldenPriceOracle');
 const RandomBeacon = artifacts.require('RandomBeacon');
 
@@ -33,7 +33,7 @@ contract("craft", ([alice, lucy, jack, tom, molin, dev]) => {
     elixirNft = await ElixirNFT.new();
     await elixirNft.initialize(dev);
 
-    alchemy = await AlchemyDelegate.new();
+    alchemy = await Alchemy.new();
 
     let goldenOracle = await TestGoldenPriceOracle.new();
 

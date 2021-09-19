@@ -42,7 +42,7 @@ module.exports = async function (deployer) {
 
   await deployer.deploy(ZooKeeperProxy, alchemyDelegate.address, proxyAdmin, '0x');
 
-  let alchemy = await alchemyDelegate.at((await ZooKeeperProxy.deployed()).address);
+  let alchemy = await Alchemy.at((await ZooKeeperProxy.deployed()).address);
   
   // address admin,
   // address _elixirNFT,

@@ -1,0 +1,16 @@
+{
+    "name": "ZooKeeper Elixir type 14",
+    "description": "ZooKeeper Elixir is a powerful item in ZooKeeper Craft, it is used to craft and level up boost NFT card.",
+    "external_url": "https://zookeeper.finance",
+    "image": "https://graph.wanswap.finance/ipfs/QmT7UZGbF1eB2TCwWSMaLGWawgaXyBvbVABjrccHnZBbbu/14.png",
+    "attributes": [
+        {
+            "trait_type": "shape",
+            "value": 14
+        },
+        {
+            "trait_type": "ability",
+            "value": "craft"
+        }
+    ]
+}

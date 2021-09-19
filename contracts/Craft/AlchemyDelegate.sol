@@ -55,7 +55,7 @@ contract AlchemyDelegate is
 
     uint256 public constant BOOST_SCALE = 1e12;
 
-    uint256 public constant ELIXIR_SHAPES = 30;
+    uint256 public constant ELIXIR_SHAPES = 34;
 
     uint256 public constant FULL_DROPS = 100 ether;
 

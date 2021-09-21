@@ -325,7 +325,7 @@ contract Alchemy is
         emit UpgradeElixir(msg.sender, info.level - 1, info.level);
     }
 
-    function withdrawElixir() external {
+    function withdrawElixir() public {
         require(userElixirMap[msg.sender] != 0, "no Elixir");
         updateDrops(msg.sender);
         uint256 tokenId = userElixirMap[msg.sender];
@@ -342,6 +342,11 @@ contract Alchemy is
         user.amount = 0;
         IERC20(buyToken).safeTransfer(msg.sender, amount);
         emit WithdrawZoo(msg.sender, amount);
+    }
+
+    function withdrawElixirAndZoo() external {
+        withdrawElixir();
+        withdrawZoo();
     }
 
     function nftCraft(

@@ -345,8 +345,14 @@ contract Alchemy is
     }
 
     function withdrawElixirAndZoo() external {
-        withdrawElixir();
-        withdrawZoo();
+        if (userElixirMap[msg.sender] != 0) {
+            withdrawElixir();
+        }
+        
+        UserInfo storage user = userInfoMap[msg.sender];
+        if (user.amount > 0) {
+            withdrawZoo();
+        }
     }
 
     function nftCraft(

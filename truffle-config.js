@@ -88,7 +88,7 @@ module.exports = {
       network_id: "999",
       skipDryRun: true,
       gas: 1e7,
-      gasPrice: 1e9
+      gasPrice: 200e9
     },
     mainnet: {
       provider: wanProvider,

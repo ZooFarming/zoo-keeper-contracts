@@ -1,8 +1,10 @@
 // const Migrations = artifacts.require("Migrations");
 const ElixirNFT = artifacts.require("ElixirNFT");
-const Alchemy = artifacts.require('Alchemy');
+const AlchemyV2 = artifacts.require('AlchemyV2');
+const RandomElixirName = artifacts.require('RandomElixirName');
 const ZooKeeperProxy = artifacts.require('ZooKeeperProxy');
 const RandomBeacon = artifacts.require('RandomBeacon');
+const elixirName = require('./elixirName.json');
 
 module.exports = async function (deployer) {
   if (deployer.network === 'development' || deployer.network === 'coverage') {
@@ -10,7 +12,23 @@ module.exports = async function (deployer) {
     return;
   }
   // await deployer.deploy(KeepsakesCreatorDelegate);
-  // return;
+  await deployer.deploy(RandomElixirName);
+  
+  let rn = await RandomElixirName.deployed();
+  await rn.addNames(elixirName.name1, []);
+  let once = 100;
+  let i=0;
+  for (i=0; i<parseInt(elixirName.name2.length / once); i++) {
+    await rn.addNames([], elixirName.name2.slice(i*once, (i+1)*once));
+  }
+
+  if (elixirName.name2.length % once > 0) {
+    await rn.addNames([], elixirName.name2.slice(i*once, i*once + elixirName.name2.length % once));
+  }
+
+  await deployer.deploy(AlchemyV2);
+
+  return;
 
   let deployerAddr = deployer.provider.addresses[0];
   console.log('deployerAddr', deployerAddr);

@@ -43,7 +43,7 @@ interface IGoldenOracle {
     function queryGoldenPrice() external view returns (uint256);
 }
 
-contract Alchemy is
+contract AlchemyV1 is
     Initializable,
     AccessControl,
     ERC721Holder,
@@ -251,7 +251,7 @@ contract Alchemy is
         user.lastRewardBlock = block.number;
     }
 
-    function buy(string calldata customName) external {
+    function buy(string memory customName) internal {
         require(bytes(customName).length <= 128, "name too long");
         require(bytes(customName).length > 0, "name too short");
 

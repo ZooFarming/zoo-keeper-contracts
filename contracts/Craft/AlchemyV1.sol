@@ -393,7 +393,7 @@ contract AlchemyV1 is
 
         ICraftNFT.TokenInfo memory t0 = ICraftNFT(zooNFT).tokenInfo(nftId0);
         ICraftNFT.TokenInfo memory t1 = ICraftNFT(zooNFT).tokenInfo(nftId1);
-        if (info.level < t0.level || t0.level != t1.level || t0.level >= 4) {
+        if (info.level < t0.item || info.level < t1.item || t0.level != t1.level || t0.level >= 4) {
             return (false, 1, info.level*10+t0.level);
         }
 

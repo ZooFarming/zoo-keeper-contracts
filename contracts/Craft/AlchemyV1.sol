@@ -278,6 +278,7 @@ contract AlchemyV1 is
         );
 
         uint256 color = randomSeed.mod(0x1000000);
+        elixirInfoMap[totalMint].level = 1;
         elixirInfoMap[totalMint].name = customName;
         elixirInfoMap[totalMint].color = color;
         elixirInfoMap[totalMint].shape = tokenShape;
@@ -397,7 +398,7 @@ contract AlchemyV1 is
         }
 
         uint drops = info.drops + pendingDrops(_user);
-        uint need = dropCostPerLevel.mul(t0.level);
+        uint need = 10 ether + dropCostPerLevel.mul(t0.level);
         if (need > drops) {
             return (false, 2, need);
         }
@@ -408,7 +409,7 @@ contract AlchemyV1 is
     function useDrops(uint elixirId, uint tokenId) internal {
         ElixirInfo storage info = elixirInfoMap[elixirId];
         ICraftNFT.TokenInfo memory t0 = ICraftNFT(zooNFT).tokenInfo(tokenId);
-        uint need = dropCostPerLevel.mul(t0.level);
+        uint need = 10 ether + dropCostPerLevel.mul(t0.level);
         info.drops = info.drops.sub(need);
     }
 

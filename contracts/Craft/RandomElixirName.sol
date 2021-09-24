@@ -41,6 +41,6 @@ contract RandomElixirName is AccessControl {
         uint r0 = uint(keccak256(abi.encode(random)));
         uint r1 = uint(keccak256(abi.encode(r0)));
 
-        return string(abi.encodePacked(name2[r0.mod(name2.length)], " of ", name1[r1.mod(name1.length)]));
+        return string(abi.encodePacked(name1[r0.mod(name1.length)], " of ", name2[r1.mod(name2.length)]));
     }
 }

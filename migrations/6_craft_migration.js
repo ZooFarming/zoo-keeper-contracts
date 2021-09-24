@@ -11,22 +11,23 @@ module.exports = async function (deployer) {
     console.log('no need migration');
     return;
   }
+  console.log("!!!!!don't forget config zooNFT factory role.!!!!")
   // await deployer.deploy(KeepsakesCreatorDelegate);
-  await deployer.deploy(RandomElixirName);
+  // await deployer.deploy(RandomElixirName);
   
-  let rn = await RandomElixirName.deployed();
-  await rn.addNames(elixirName.name1, []);
-  let once = 100;
-  let i=0;
-  for (i=0; i<parseInt(elixirName.name2.length / once); i++) {
-    await rn.addNames([], elixirName.name2.slice(i*once, (i+1)*once));
-  }
+  // let rn = await RandomElixirName.deployed();
+  // await rn.addNames(elixirName.name1, []);
+  // let once = 100;
+  // let i=0;
+  // for (i=0; i<parseInt(elixirName.name2.length / once); i++) {
+  //   await rn.addNames([], elixirName.name2.slice(i*once, (i+1)*once));
+  // }
 
-  if (elixirName.name2.length % once > 0) {
-    await rn.addNames([], elixirName.name2.slice(i*once, i*once + elixirName.name2.length % once));
-  }
+  // if (elixirName.name2.length % once > 0) {
+  //   await rn.addNames([], elixirName.name2.slice(i*once, i*once + elixirName.name2.length % once));
+  // }
 
-  // await deployer.deploy(AlchemyV2);
+  await deployer.deploy(AlchemyV2);
 
   return;
 

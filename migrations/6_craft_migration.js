@@ -34,12 +34,12 @@ module.exports = async function (deployer) {
   let deployerAddr = deployer.provider.addresses[0];
   console.log('deployerAddr', deployerAddr);
   //TODO: TESTNET CONFIG----------
-  let proxyAdmin = '0x5560aF0F46D00FCeA88627a9DF7A4798b1b10961';
-  let admin = '0x4Cf0A877E906DEaD748A41aE7DA8c220E4247D9e';
-  let zooToken = '0x890589dC8BD3F973dcAFcB02b6e1A133A76C8135';
-  let zooNFT = '0xbCF9F4fae90dA7c4BB05DA6f9E9A9A39dc5Ce979';
-  let nftFactory = '0x40B4653a2263c9A6634018365Fa5aa5a81E0b0Bd';
-  let rbOperator = '0x4BD2c90F87d4880183126e24e9c2888E7DbeF17b';
+  // let proxyAdmin = '0x5560aF0F46D00FCeA88627a9DF7A4798b1b10961';
+  // let admin = '0x4Cf0A877E906DEaD748A41aE7DA8c220E4247D9e';
+  // let zooToken = '0x890589dC8BD3F973dcAFcB02b6e1A133A76C8135';
+  // let zooNFT = '0xbCF9F4fae90dA7c4BB05DA6f9E9A9A39dc5Ce979';
+  // let nftFactory = '0x40B4653a2263c9A6634018365Fa5aa5a81E0b0Bd';
+  // let rbOperator = '0x4BD2c90F87d4880183126e24e9c2888E7DbeF17b';
   //--------------------
   //TODO: MAINNET CONFIG----------
   let proxyAdmin = '0xa206e4858849f70c3d684e854e7C126EF7baB32e';

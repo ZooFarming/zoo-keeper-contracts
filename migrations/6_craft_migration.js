@@ -27,9 +27,9 @@ module.exports = async function (deployer) {
   //   await rn.addNames([], elixirName.name2.slice(i*once, i*once + elixirName.name2.length % once));
   // }
 
-  await deployer.deploy(AlchemyV2);
+  // await deployer.deploy(AlchemyV2);
 
-  return;
+  // return;
 
   let deployerAddr = deployer.provider.addresses[0];
   console.log('deployerAddr', deployerAddr);
@@ -42,8 +42,12 @@ module.exports = async function (deployer) {
   let rbOperator = '0x4BD2c90F87d4880183126e24e9c2888E7DbeF17b';
   //--------------------
   //TODO: MAINNET CONFIG----------
-  // let proxyAdmin = '0xa206e4858849f70c3d684e854e7C126EF7baB32e';
-  // let admin = '0x83f83439Cc3274714A7dad32898d55D17f7C6611';
+  let proxyAdmin = '0xa206e4858849f70c3d684e854e7C126EF7baB32e';
+  let admin = '0x83f83439Cc3274714A7dad32898d55D17f7C6611';
+  let zooToken = '0x6e11655d6aB3781C6613db8CB1Bc3deE9a7e111F';
+  let zooNFT = '0x38034B2E6ae3fB7FEC5D895a9Ff3474bA0c283F6';
+  let nftFactory = '0xBCE166860F514b6134AbC6E9Aa0005CC489b6352';
+  let rbOperator = '0x4BD2c90F87d4880183126e24e9c2888E7DbeF17b';
   //--------------------
 
   await deployer.deploy(ElixirNFT);
@@ -55,13 +59,27 @@ module.exports = async function (deployer) {
 
   await randomBeacon.initialize(admin, rbOperator);
 
-  await deployer.deploy(Alchemy);
+  await deployer.deploy(RandomElixirName);
+  
+  let rn = await RandomElixirName.deployed();
+  await rn.addNames(elixirName.name1, []);
+  let once = 100;
+  let i=0;
+  for (i=0; i<parseInt(elixirName.name2.length / once); i++) {
+    await rn.addNames([], elixirName.name2.slice(i*once, (i+1)*once));
+  }
 
-  let alchemyDelegate = await Alchemy.deployed();
+  if (elixirName.name2.length % once > 0) {
+    await rn.addNames([], elixirName.name2.slice(i*once, i*once + elixirName.name2.length % once));
+  }
+
+  await deployer.deploy(AlchemyV2);
+
+  let alchemyDelegate = await AlchemyV2.deployed();
 
   await deployer.deploy(ZooKeeperProxy, alchemyDelegate.address, proxyAdmin, '0x');
 
-  let alchemy = await Alchemy.at((await ZooKeeperProxy.deployed()).address);
+  let alchemy = await AlchemyV2.at((await ZooKeeperProxy.deployed()).address);
   
   // address admin,
   // address _elixirNFT,
@@ -70,6 +88,8 @@ module.exports = async function (deployer) {
   // address _zooNFT,
   // address randomOracle_
   await alchemy.initialize(deployerAddr, elixirNFT.address, zooToken, nftFactory, zooNFT, randomBeacon.address);
+
+  await alchemy.setRandomNameAddr(rn.address);
 
   await elixirNFT.initialize(deployerAddr);
 
@@ -95,5 +115,5 @@ module.exports = async function (deployer) {
   console.log('alchemy:', alchemy.address);
   console.log('elixirNFT:', elixirNFT.address);
   console.log('randomBeacon:', randomBeacon.address);
-
+  console.log('randomElixirName:', rn.address);
 }

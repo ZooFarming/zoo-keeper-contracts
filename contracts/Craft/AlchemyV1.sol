@@ -474,9 +474,9 @@ contract AlchemyV1 is
         IERC721(zooNFT).safeTransferFrom(address(this), user, totalSupply);
         IERC721(elixirNFT).safeTransferFrom(address(this), user, ci.elixirId);
 
+        emit CraftDone(user, ci.elixirId, ci.tokenId0, ci.tokenId1, totalSupply, level, category, item);
+
         // finish clear
         delete pendingCraft[user];
-
-        emit CraftDone(user, ci.elixirId, ci.tokenId0, ci.tokenId1, totalSupply, level, category, item);
     }
 }

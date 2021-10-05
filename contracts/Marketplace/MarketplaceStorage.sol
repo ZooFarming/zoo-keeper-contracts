@@ -32,7 +32,7 @@ contract MarketplaceStorage {
 
     EnumerableSet.UintSet internal orderIds; 
 
-    mapping(uint => OrderInfo) orders;
+    mapping(uint => OrderInfo) public orders;
 
     // version 2 add
 

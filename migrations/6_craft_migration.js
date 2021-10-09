@@ -27,7 +27,7 @@ module.exports = async function (deployer) {
   //   await rn.addNames([], elixirName.name2.slice(i*once, i*once + elixirName.name2.length % once));
   // }
 
-  await deployer.deploy(AlchemyV2);
+  // await deployer.deploy(AlchemyV2);
 
   return;
 

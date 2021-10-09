@@ -153,6 +153,10 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
             return false;
         }
 
+        if (info.nftContract != zooNFT) {
+            return true;
+        }
+
         // fix for foridden cheaters NFT
         if (info.tokenId >= 20 && info.tokenId <= 47) {
             return false;

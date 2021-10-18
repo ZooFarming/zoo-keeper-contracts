@@ -42,13 +42,17 @@ contract ZooHelperDelegate is Initializable, AccessControl, ZooHelperStorage {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
-    function config(address _zooToken, address _zooFarming, address _zooPair, address _nftFactory, address _safari, address _alchemy) public {
+    function config(address _zooToken, address _zooFarming, address _zooPair, address _nftFactory, address _safari) public {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         zooToken = _zooToken;
         zooFarming = _zooFarming;
         zooPair = _zooPair;
         nftFactory = _nftFactory;
         safari = _safari;
+    }
+
+    function updateAlchemyAddress(address _alchemy) public {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         alchemy = _alchemy;
     }
 

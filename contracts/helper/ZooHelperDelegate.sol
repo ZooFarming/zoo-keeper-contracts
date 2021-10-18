@@ -32,19 +32,24 @@ interface IZooExpedition {
     function stakeInfo(address user, uint256 id) external view returns (uint256, uint256, uint256);
 }
 
+interface IAlchemy {
+    function userInfoMap(address user) external view returns (uint256, uint256);
+}
+
 contract ZooHelperDelegate is Initializable, AccessControl, ZooHelperStorage {
 
     function initialize(address admin) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
-    function config(address _zooToken, address _zooFarming, address _zooPair, address _nftFactory, address _safari) public {
+    function config(address _zooToken, address _zooFarming, address _zooPair, address _nftFactory, address _safari, address _alchemy) public {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         zooToken = _zooToken;
         zooFarming = _zooFarming;
         zooPair = _zooPair;
         nftFactory = _nftFactory;
         safari = _safari;
+        alchemy = _alchemy;
     }
 
     function getTotalScore(address user) public view returns (uint256) {
@@ -64,6 +69,20 @@ contract ZooHelperDelegate is Initializable, AccessControl, ZooHelperStorage {
         // safari zoo
         total = total.add(getSafariZoo(user));
 
+        // Alchemy
+        total = total.add(getAlchemistLab(user));
+
+        return total;
+    }
+
+    function getAlchemistLab(address user) public view returns (uint256){
+        if(alchemy == address(0)) {
+            return 0;
+        }
+        uint total = 0;
+        uint amount = 0;
+        (amount, ) = IAlchemy(alchemy).userInfoMap(user);
+        total = total.add(amount);
         return total;
     }
 

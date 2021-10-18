@@ -11,4 +11,5 @@ contract ZooHelperStorage {
     address public zooPair;
     address public nftFactory;
     address public safari;
+    address public alchemy;
 }

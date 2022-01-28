@@ -42,11 +42,12 @@ contract ZooHelperDelegate is Initializable, AccessControl, ZooHelperStorage {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
-    function config(address _zooToken, address _zooFarming, address _zooPair, address _nftFactory, address _safari) public {
+    function config(address _zooToken, address _zooFarming, address _zooWaspPair, address _zooWanPair, address _nftFactory, address _safari) public {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         zooToken = _zooToken;
         zooFarming = _zooFarming;
-        zooPair = _zooPair;
+        zooPair = _zooWaspPair;
+        zooWanPair = _zooWanPair;
         nftFactory = _nftFactory;
         safari = _safari;
     }
@@ -137,11 +138,21 @@ contract ZooHelperDelegate is Initializable, AccessControl, ZooHelperStorage {
         }
         uint total = 0;
         uint amount;
+        // ZOO/WASP
         (amount,,) = IZooFarming(zooFarming).userInfo(7, user);
         if (amount > 0) {
             uint lpTotal = IERC20(zooPair).totalSupply();
             uint reserve0;
             (reserve0, , ) = IWanswapPair(zooPair).getReserves();
+            total = total.add(amount.mul(reserve0).div(lpTotal));
+        }
+
+        // ZOO/WAN
+        (amount,,) = IZooFarming(zooFarming).userInfo(8, user);
+        if (amount > 0) {
+            uint lpTotal = IERC20(zooWanPair).totalSupply();
+            uint reserve0;
+            (reserve0, , ) = IWanswapPair(zooWanPair).getReserves();
             total = total.add(amount.mul(reserve0).div(lpTotal));
         }
 

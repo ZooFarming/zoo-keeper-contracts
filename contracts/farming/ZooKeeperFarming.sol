@@ -213,6 +213,14 @@ contract ZooKeeperFarming is Ownable {
         }
     }
 
+    // claim all rewards in farming pools
+    function claimAll() public {
+        uint256 length = poolInfo.length;
+        for (uint256 pid = 0; pid < length; ++pid) {
+            withdraw(pid, 0);
+        }
+    }
+
     // Update reward variables of the given pool to be up-to-date.
     function updatePool(uint256 _pid) public {
         if (startTime == 0 || allEndTime == 0 || zooPerSecond == 0) {

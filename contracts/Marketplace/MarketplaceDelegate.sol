@@ -24,7 +24,7 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
 
     event CreateOrder(address indexed _nftContract, uint indexed _tokenId, address indexed _token, uint _price, uint _expiration, uint _orderId);
 
-    event CancelOrder(uint indexed _tokenId);
+    event CancelOrder(uint indexed _orderId);
 
     event BuyOrder(uint indexed _orderId, uint indexed _tokenId, address indexed _buyer, address _seller, address _nftContract, address _token, uint price);
     
@@ -34,7 +34,7 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
 
     function initialize(address admin) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
-        maxExpirationTime = 14 days;
+        maxExpirationTime = 1400 days;
         minExpirationTime = 1 days;
     }
 
@@ -96,7 +96,7 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         orderIds.remove(orderId);
         delete orders[orderId];
 
-        emit CancelOrder(_tokenId);
+        emit CancelOrder(orderId);
     }
 
     function buyOrder(uint _orderId) external {
@@ -149,57 +149,57 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
             return false;
         }
 
-        if (info.createTime + info.expiration < block.timestamp) {
-            return false;
-        }
+        // if (info.createTime + info.expiration < block.timestamp) {
+        //     return false;
+        // }
 
-        if (info.nftContract != zooNFT) {
-            return true;
-        }
+        // if (info.nftContract != zooNFT) {
+        //     return true;
+        // }
 
-        // fix for foridden cheaters NFT
-        if (info.tokenId >= 20 && info.tokenId <= 47) {
-            return false;
-        }
-        if (info.tokenId == 99) {
-            return false;
-        }
-        if (info.tokenId == 89) {
-            return false;
-        }
-        if (info.tokenId == 86) {
-            return false;
-        }
-        if (info.tokenId == 78) {
-            return false;
-        }
-        if (info.tokenId == 75) {
-            return false;
-        }
+        // // fix for foridden cheaters NFT
+        // if (info.tokenId >= 20 && info.tokenId <= 47) {
+        //     return false;
+        // }
+        // if (info.tokenId == 99) {
+        //     return false;
+        // }
+        // if (info.tokenId == 89) {
+        //     return false;
+        // }
+        // if (info.tokenId == 86) {
+        //     return false;
+        // }
+        // if (info.tokenId == 78) {
+        //     return false;
+        // }
+        // if (info.tokenId == 75) {
+        //     return false;
+        // }
 
-        if (info.tokenId == 56) {
-            return false;
-        }
+        // if (info.tokenId == 56) {
+        //     return false;
+        // }
 
-        if (info.tokenId == 52) {
-            return false;
-        }
+        // if (info.tokenId == 52) {
+        //     return false;
+        // }
 
-        if (info.tokenId == 16) {
-            return false;
-        }
+        // if (info.tokenId == 16) {
+        //     return false;
+        // }
 
-        if (info.tokenId == 14) {
-            return false;
-        }
+        // if (info.tokenId == 14) {
+        //     return false;
+        // }
 
-        if (info.tokenId == 222) {
-            return false;
-        }
+        // if (info.tokenId == 222) {
+        //     return false;
+        // }
 
-        if (info.tokenId == 252) {
-            return false;
-        }
+        // if (info.tokenId == 252) {
+        //     return false;
+        // }
 
         return true;
     }

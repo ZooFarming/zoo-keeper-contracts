@@ -93,6 +93,9 @@ contract ZooKeeperFarming is Ownable {
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
+    event Add(address indexed lpToken, uint256 allocPoint);
+    event Set(uint256 indexed pid, uint256 allocPoint);
+    event Config(uint256 startTime, uint256 allEndTime, uint256 zooPerSecond);
 
     constructor(
         ZooToken _zoo,
@@ -110,6 +113,8 @@ contract ZooKeeperFarming is Ownable {
         startTime = _startTime;
         allEndTime = _endTime;
         zooPerSecond = _zooPerSecond;
+        
+        emit Config(_startTime, _endTime, _zooPerSecond);
     }
 
     function finalize() external onlyOwner {
@@ -137,6 +142,8 @@ contract ZooKeeperFarming is Ownable {
             accZooPerShare: 0,
             emergencyMode: false
         }));
+
+        emit Add(address(_lpToken), _allocPoint);
     }
 
     // Update the given pool's ZOO allocation point. Can only be called by the owner.
@@ -146,6 +153,8 @@ contract ZooKeeperFarming is Ownable {
         }
         totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
         poolInfo[_pid].allocPoint = _allocPoint;
+
+        emit Set(_pid, _allocPoint);
     }
 
     // Return reward multiplier over the given _from to _to block.

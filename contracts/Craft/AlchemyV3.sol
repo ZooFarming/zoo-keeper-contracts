@@ -5,11 +5,16 @@ pragma solidity 0.6.12;
 import "./AlchemyV2.sol";
 
 contract AlchemyV3 is AlchemyV2 {
+
     bytes32 public constant CROSS_CHAIN_ROLE = keccak256("CROSS_CHAIN_ROLE");
 
     modifier onlyCrossChain() {
         require(hasRole(CROSS_CHAIN_ROLE, msg.sender), "only crosschain");
         _;
+    }
+
+    function configPriceOracle(address _priceOracle) external onlyAdmin {
+        priceOracle = _priceOracle;
     }
 
     function crossMint(

@@ -204,8 +204,9 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         return true;
     }
 
-    function cleanInvalidOrders(int from, int to) public {
+    function cleanInvalidOrders(int from, int to) public returns (uint) {
         require(to >= from, "to should >= from");
+        uint ret = 0;
         for (int i=to; i>= from; i--) {
             uint orderId = orderIds.at(uint(i));
             if (!checkOrderValid(orderId)) {
@@ -213,8 +214,10 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
                 orderIds.remove(orderId);
                 delete orders[orderId];
                 emit CleanOrder(orderId, info.tokenId, info.owner, info.nftContract, info.token, info.price);
+                ret++;
             }
         }
+        return ret;
     }
 
     function configZooNFT(address _zooNFT, address _zooToken) external {

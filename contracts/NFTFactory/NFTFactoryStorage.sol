@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.7;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
 contract NFTFactoryStorage {
-    using SafeMath for uint256;
-
     struct StakeInfo {
         uint lockTime;
         uint startTime;
@@ -68,4 +67,39 @@ contract NFTFactoryStorage {
 
     // planId => stakeZooAmount
     mapping(uint => uint) public stakedAmount;
+
+    uint internal _foundationSeed;
+
+    bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
+
+    uint public currentRequestCount;
+
+    uint public doneRequestCount;
+
+    struct MintRequestInfoV2 {
+        address user;
+        uint price;
+        uint chestType; // 0: buy silver, 1: buy golden, 2: zoo claim, 4: zoorena silver, 5: zoorena golden
+    }
+
+    // request index => request info
+    mapping(uint => MintRequestInfoV2) mintRequestInfoV2;
+
+    bytes32 public constant FACTORY_MINTER_ROLE = keccak256("FACTORY_MINTER_ROLE");
+
+    // add for VRF
+    uint64 public s_subscriptionId;
+    
+    // The default is 1, but you can set this higher.
+    uint16 requestConfirmations = 1;
+    
+    // A reasonable default is 100000, but this value could be different
+    // on other networks.
+    uint32 callbackGasLimit = 2500000;
+    
+    // For this example, retrieve 2 random values in one request.
+    // Cannot exceed VRFCoordinatorV2.MAX_NUM_WORDS.
+    uint32 numWords = 1;
+
+    VRFCoordinatorV2Interface COORDINATOR;
 }

@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.8.7;
 
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/proxy/Initializable.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
-import "./NFTFactoryStorageV4.sol";
+
+
+import "./NFTFactoryStorage.sol";
 
 interface IZooToken {
     function burn(uint256 _amount) external;
@@ -21,13 +24,22 @@ interface IZooNFTMint {
     function itemSupply(uint _level, uint _category, uint _item) external view returns (uint);
 }
 
-interface IPrivateOracle {
-    function inputSeed(uint seed_) external;
-}
-
 // NFTFactory
-contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFactoryStorageV4 {
+contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFactoryStorage {
     using SafeERC20 for IERC20;
+
+    // Avalanche Fuji coordinator. For other networks,
+    // see https://docs.chain.link/docs/vrf-contracts/#configurations
+    address constant vrfCoordinator = 0x2eD832Ba664535e5886b75D64C46EB9a228C2610;
+
+    // Avalanche Fuji LINK token contract. For other networks, see
+    // https://docs.chain.link/docs/vrf-contracts/#configurations
+    address constant link_token_contract = 0x0b9d5D9136855f6FEc3c0993feE6E9CE8a297846;
+
+    // The gas lane to use, which specifies the maximum gas price to bump to.
+    // For a list of available gas lanes on each network,
+    // see https://docs.chain.link/docs/vrf-contracts/#configurations
+    bytes32 constant keyHash = 0x354d2f95da55398f44b7cff77da56283d9c6c829a4bdf1bbcaf2ad6a4d081f61;
 
     event MintNFT(uint indexed level, uint indexed category, uint indexed item, uint random, uint tokenId, uint itemSupply);
 
@@ -45,7 +57,9 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
 
     event MintFinish(address indexed user);
 
-    function initialize(address admin, address _zooToken, address _zooNFT) public payable initializer {
+    error OnlyCoordinatorCanFulfill(address have, address want);
+
+    function initialize(address admin, address _zooToken, address _zooNFT, uint64 _vrfId) public payable initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
         goldenChestPrice = 25000 ether;
         maxNFTLevel = 4;
@@ -94,23 +108,13 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         ITEM_MASK.push(85);
         ITEM_MASK.push(95);
         ITEM_MASK.push(100);
-    }
 
-    function configOracle(address oracle) external {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-        _setRoleAdmin(ORACLE_ROLE, DEFAULT_ADMIN_ROLE);
-        grantRole(ORACLE_ROLE, oracle);
-        _foundationSeed = uint(keccak256(abi.encode(msg.sender, blockhash(block.number - 1), block.coinbase)));
+        s_subscriptionId = _vrfId;
     }
 
     function configMinter(address minter) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         grantRole(FACTORY_MINTER_ROLE, minter);
-    }
-
-    function inputSeed(uint seed_) external {
-        require(hasRole(ORACLE_ROLE, msg.sender));
-        _foundationSeed = seed_;
     }
 
     function configTokenAddress(address _zooToken, address _zooNFT) external {
@@ -182,7 +186,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         priceRaise(currentPrice);
 
         // silver chest price is 1/10 golden chest price
-        currentPrice = currentPrice.div(10);
+        currentPrice = currentPrice / 10;
 
         IERC20(zooToken).transferFrom(msg.sender, address(this), currentPrice);
         IZooToken(zooToken).burn(currentPrice);
@@ -196,7 +200,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
             return goldenChestPrice;
         }
 
-        uint hourPassed = (block.timestamp - lastOrderTimestamp).div(dynamicPriceTimeUnit);
+        uint hourPassed = (block.timestamp - lastOrderTimestamp) / dynamicPriceTimeUnit;
         if (hourPassed == 0) {
             return lastPrice;
         }
@@ -204,7 +208,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         // every 1 hour idle, price goes down 1%
         uint newPrice = lastPrice;
         for (uint i=0; i<hourPassed; i++) {
-            newPrice = newPrice.mul(priceDown0).div(priceDown1);
+            newPrice = newPrice * priceDown0 / priceDown1;
             if (newPrice < dynamicMinPrice) {
                 return dynamicMinPrice;
             }
@@ -213,18 +217,18 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
     }
 
     function priceRaise(uint currentPrice) private {
-        if (currentPrice.mul(priceUp0).div(priceUp1) > dynamicMaxPrice) {
+        if (currentPrice * priceUp0 / priceUp1 > dynamicMaxPrice) {
             lastPrice = dynamicMaxPrice;
         } else {
-            lastPrice = currentPrice.mul(priceUp0).div(priceUp1);
+            lastPrice = currentPrice * priceUp0 / priceUp1;
         }
     }
 
     function priceRaiseSilver(uint currentPrice) private {
-        if (currentPrice.mul(1001).div(1000) > dynamicMaxPrice) {
+        if (currentPrice * 1001 / 1000 > dynamicMaxPrice) {
             lastPrice = dynamicMaxPrice;
         } else {
-            lastPrice = currentPrice.mul(1001).div(1000);
+            lastPrice = currentPrice * 1001 / 1000;
         }
     }
 
@@ -252,13 +256,13 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
 
         stakeInfo[msg.sender][_type].startTime = block.timestamp;
 
-        uint stakePrice = currentPrice.mul(stakePlan[_type].priceMul).div(stakePlan[_type].priceDiv);
+        uint stakePrice = currentPrice * stakePlan[_type].priceMul / stakePlan[_type].priceDiv;
         stakeInfo[msg.sender][_type].stakeAmount = stakePrice;
         stakeInfo[msg.sender][_type].lockTime = stakePlan[_type].lockTime;
 
         IERC20(zooToken).transferFrom(msg.sender, address(this), stakePrice);
 
-        stakedAmount[_type] = stakedAmount[_type].add(stakePrice);
+        stakedAmount[_type] = stakedAmount[_type] + stakePrice;
 
         emit ZooStake(msg.sender, stakePrice, _type);
     }
@@ -297,12 +301,12 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         }
 
         IERC20(zooToken).safeTransfer(msg.sender, amount);
-        stakedAmount[_type] = stakedAmount[_type].sub(amount);
+        stakedAmount[_type] = stakedAmount[_type] - amount;
         // emit ZooClaim(msg.sender, amount, _type, tokenId);
     }
 
     function isStakeFinished(uint _type) public view returns (bool) {
-        return block.timestamp > (stakeInfo[msg.sender][_type].startTime.add(stakeInfo[msg.sender][_type].lockTime));
+        return block.timestamp > (stakeInfo[msg.sender][_type].startTime + stakeInfo[msg.sender][_type].lockTime);
     }
 
     function isSilverSuccess() private view returns (bool) {
@@ -310,7 +314,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         uint random1 = uint(keccak256(abi.encode(msg.sender, blockhash(block.number - 30), totalSupply, getRandomSeed())));
         uint random2 = uint(keccak256(abi.encode(random1)));
         uint random3 = uint(keccak256(abi.encode(random2)));
-        if (random2.mod(1000).add(random3.mod(1000)).mod(10) == 6) {
+        if ((random2 % (1000) + random3 % (1000)) % (10) == 6) {
             return true;
         }
         return false;
@@ -326,9 +330,9 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         uint random4 = uint(keccak256(abi.encode(random3)));
 
         level = _level;
-        category = getMaskValue(random4.mod(100), CATEGORY_MASK) + 1;
-        item = getMaskValue(random3.mod(100), ITEM_MASK) + 1;
-        random = random1.mod(maxNFTRandom) + 1;
+        category = getMaskValue(random4 % (100), CATEGORY_MASK) + 1;
+        item = getMaskValue(random3 % (100), ITEM_MASK) + 1;
+        random = random1 % (maxNFTRandom) + 1;
     }
 
     function randomNFT(address user, bool golden) private view returns (uint tokenId, uint level, uint category, uint item, uint random) {
@@ -341,14 +345,14 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         uint random5 = uint(keccak256(abi.encode(random4)));
 
         // mod 100 -> 96 is used for fix the total chance is 96% not 100% issue.
-        level = getMaskValue(random5.mod(96), LEVEL_MASK) + 1;
-        category = getMaskValue(random4.mod(100), CATEGORY_MASK) + 1;
+        level = getMaskValue(random5 % (96), LEVEL_MASK) + 1;
+        category = getMaskValue(random4 % (100), CATEGORY_MASK) + 1;
         if (golden) {
-            item = getMaskValue(random3.mod(100), ITEM_MASK) + 1;
+            item = getMaskValue(random3 % (100), ITEM_MASK) + 1;
         } else {
-            item = getMaskValue(random2.mod(85), ITEM_MASK) + 1;
+            item = getMaskValue(random2 % (85), ITEM_MASK) + 1;
         }
-        random = random1.mod(maxNFTRandom) + 1;
+        random = random1 % (maxNFTRandom) + 1;
     }
 
     function getMaskValue(uint random, uint[] memory mask) private pure returns (uint) {
@@ -357,6 +361,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
                 return i;
             }
         }
+        return 0;
     }
 
     function getRandomSeed() internal view returns (uint) {
@@ -461,7 +466,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         mintRequestInfoV2[currentRequestCount].user = user;
         mintRequestInfoV2[currentRequestCount].price = _price;
         mintRequestInfoV2[currentRequestCount].chestType = chestType;
-        currentRequestCount = currentRequestCount.add(1);
+        currentRequestCount = currentRequestCount + 1;
     }
 
     function externalRequestMint(address user, uint chestType, uint _price) external {
@@ -477,11 +482,48 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         return 0;
     }
 
-    function agentMint(uint _seed) external {
-        require(getWaitingMintCount() > 0, "no mint request");
-        require(hasRole(ORACLE_ROLE, msg.sender));
-        _foundationSeed = _seed;
+    function configVRF(uint64 _subscriptionId, uint16 _confirm, uint32 _gasLimit, uint32 _numWords) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        s_subscriptionId = _subscriptionId;
+        requestConfirmations = _confirm;
+        callbackGasLimit = _gasLimit;
+        numWords = _numWords;
 
+        COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
+    }
+
+    // Assumes the subscription is funded sufficiently.
+    function requestRandomWords() internal {
+        // Will revert if subscription is not set and funded.
+        COORDINATOR.requestRandomWords(
+            keyHash,
+            s_subscriptionId,
+            requestConfirmations,
+            callbackGasLimit,
+            numWords
+        );
+    }
+
+    // rawFulfillRandomness is called by VRFCoordinator when it receives a valid VRF
+    // proof. rawFulfillRandomness then calls fulfillRandomness, after validating
+    // the origin of the call
+    function rawFulfillRandomWords(uint256 requestId, uint256[] memory randomWords) external {
+        if (msg.sender != vrfCoordinator) {
+            revert OnlyCoordinatorCanFulfill(msg.sender, vrfCoordinator);
+        }
+        fulfillRandomWords(requestId, randomWords);
+    }
+
+    // Callback function to receive the random values
+    function fulfillRandomWords(
+        uint256, /* requestId */
+        uint256[] memory randomWords
+    ) internal {
+        agentMint(randomWords[0]);
+    }    
+
+    function agentMint(uint _seed) internal {
+        _foundationSeed = _seed;
         uint i = doneRequestCount;
         
         // 0: buy silver, 1: buy golden, 2: golden claim, 3: silver claim
@@ -495,7 +537,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
             claimSilverChest(mintRequestInfoV2[i].user, mintRequestInfoV2[i].price);
         }
 
-        doneRequestCount = doneRequestCount.add(1);
+        doneRequestCount = doneRequestCount + 1;
         emit MintFinish(mintRequestInfoV2[i].user);
     }
 }

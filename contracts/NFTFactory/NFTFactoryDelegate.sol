@@ -467,6 +467,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         mintRequestInfoV2[currentRequestCount].price = _price;
         mintRequestInfoV2[currentRequestCount].chestType = chestType;
         currentRequestCount = currentRequestCount + 1;
+        requestRandomWords();
     }
 
     function externalRequestMint(address user, uint chestType, uint _price) external {

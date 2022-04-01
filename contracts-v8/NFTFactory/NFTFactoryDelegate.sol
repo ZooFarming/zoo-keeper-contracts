@@ -110,6 +110,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         ITEM_MASK.push(100);
 
         s_subscriptionId = _vrfId;
+        COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
     }
 
     function configMinter(address minter) external {

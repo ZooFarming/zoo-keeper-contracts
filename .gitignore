@@ -5,3 +5,5 @@ yarn-error.log
 coverage/
 coverage.json
 artifacts
+node_modules_bak
+.deps

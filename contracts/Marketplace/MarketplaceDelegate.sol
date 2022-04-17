@@ -220,6 +220,39 @@ contract MarketplaceDelegate is Initializable, AccessControl, MarketplaceStorage
         return ret;
     }
 
+    function getInvalidOrders() public view returns (uint[] memory invalidOrders) {
+        uint found;
+        uint count = orderCount();
+        for (uint i=0; i<count; i++) {
+            uint orderId = orderIds.at(uint(i));
+            if (!checkOrderValid(orderId)) {
+                found++;
+            }
+        }
+        invalidOrders = new uint[](found);
+        uint index = 0;
+        for (uint i=0; i<count; i++) {
+            uint orderId = orderIds.at(uint(i));
+            if (!checkOrderValid(orderId)) {
+                invalidOrders[index] = orderId;
+                index++;
+            }
+        }
+    }
+
+    function cleanOrders(uint[] calldata _invalidIds) public {
+        int length = int(_invalidIds.length);
+        for (int i=(length - 1); i>= 0; i--) {
+            uint orderId = _invalidIds[uint256(i)];
+            if (!checkOrderValid(orderId)) {
+                OrderInfo memory info = orders[orderId];
+                orderIds.remove(orderId);
+                delete orders[orderId];
+                emit CleanOrder(orderId, info.tokenId, info.owner, info.nftContract, info.token, info.price);
+            }
+        }
+    }
+
     function configZooNFT(address _zooNFT, address _zooToken) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         zooNFT = _zooNFT;

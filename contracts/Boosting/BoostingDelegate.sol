@@ -82,6 +82,8 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
 
         if (_tokenId != 0x0) {
             if (info.tokenId != 0x0) {
+                require(info.tokenId != 8259 && info.tokenId != 14881 && info.tokenId != 15277, "Forbidden. contact @genshimaro or @fennecfox at telegram.");
+
                 IERC721(NFTAddress).safeTransferFrom(address(this), _user, info.tokenId);
             }
             info.tokenId = _tokenId;

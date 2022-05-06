@@ -70,7 +70,7 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
             require(_lockTime == 0, "This pool can not lock anymore");
         }
 
-        require(_tokenId != 8259 && _tokenId != 14881 && _tokenId != 15277, "Forbidden. contact @genshimaro or @fennecfox at telegram.");
+        require(_tokenId != 8259 && _tokenId != 14881 && _tokenId != 15277, "Forbidden. contact @genshimaro or @fennecfox in Telegram.");
 
 
         UserInfo storage info = userInfo[_pid][_user];
@@ -82,7 +82,7 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
 
         if (_tokenId != 0x0) {
             if (info.tokenId != 0x0) {
-                require(info.tokenId != 8259 && info.tokenId != 14881 && info.tokenId != 15277, "Forbidden. contact @genshimaro or @fennecfox at telegram.");
+                require(info.tokenId != 8259 && info.tokenId != 14881 && info.tokenId != 15277, "Forbidden. contact @genshimaro or @fennecfox in Telegram.");
 
                 IERC721(NFTAddress).safeTransferFrom(address(this), _user, info.tokenId);
             }
@@ -101,7 +101,7 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
         info.startTime = 0;
         info.lockTime = 0;
 
-        require(info.tokenId != 8259 && info.tokenId != 14881 && info.tokenId != 15277, "Forbidden. contact @genshimaro or @fennecfox at telegram.");
+        require(info.tokenId != 8259 && info.tokenId != 14881 && info.tokenId != 15277, "Forbidden. contact @genshimaro or @fennecfox in Telegram.");
 
         if (info.tokenId != 0x0) {
             IERC721(NFTAddress).safeTransferFrom(address(this), _user, info.tokenId);

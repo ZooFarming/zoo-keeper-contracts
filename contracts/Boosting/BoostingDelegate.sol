@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
+import "@openzeppelin/contracts/proxy/ProxyAdmin.sol";
+import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
 import "./BoostingStorage.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
@@ -64,6 +66,9 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
 
         // emergency for FNX
         require(_pid != 4, "FNX can not deposit anymore");
+        if (_pid <= 2 || _pid == 5 || _pid == 6) {
+            require(_lockTime == 0, "This pool can not lock anymore");
+        }
 
         require(_tokenId != 8259 && _tokenId != 14881 && _tokenId != 15277, "Forbidden. contact @genshimaro or @fennecfox at telegram.");
 
@@ -107,6 +112,10 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
     function checkWithdraw(uint _pid, address _user) public view returns (bool) {
         // emergency for FNX
         if (_pid == 4) {
+            return true;
+        }
+
+        if (_pid <= 2 || _pid == 5 || _pid == 6) {
             return true;
         }
 

@@ -18,14 +18,14 @@
  *
  */
 
-// const HDWalletProvider = require('@truffle/hdwallet-provider');
+const HDWalletProvider = require('@truffle/hdwallet-provider');
 // const infuraKey = "fj4jll3k.....";
 //
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
-const WanProvider = require('wanchain-truffle-sdk').WanProvider;
-const wanProvider = new WanProvider(process.env.PK, "https://gwan-ssl.wandevs.org:46891");
+// const WanProvider = require('wanchain-truffle-sdk').WanProvider;
+// const wanProvider = new WanProvider(process.env.PK, "https://gwan-ssl.wandevs.org:56891");
 // const wanProvider = new HDWalletProvider("", "https://gwan-ssl.wandevs.org:46891");
 
 module.exports = {
@@ -83,20 +83,34 @@ module.exports = {
     // }
 
     
-    testnet: {
-      provider: wanProvider,
-      network_id: "999",
+    // testnet: {
+    //   provider: wanProvider,
+    //   network_id: "999",
+    //   skipDryRun: true,
+    //   gas: 1e7,
+    //   gasPrice: 200e9
+    // },
+    // mainnet: {
+    //   provider: wanProvider,
+    //   network_id: "888",
+    //   skipDryRun: true,
+    //   gas: 1e7,
+    //   gasPrice: 1e9
+    // },
+    avalanche: {
+      provider: new HDWalletProvider(process.env.PK, "https://api.avax.network/ext/bc/C/rpc"),
+      network_id: "43114",
       skipDryRun: true,
-      gas: 1e7,
-      gasPrice: 200e9
+      gas: 7e6,
+      gasPrice: 26e9
     },
-    mainnet: {
-      provider: wanProvider,
-      network_id: "888",
+    fuji: {
+      provider: new HDWalletProvider(process.env.PK, "https://api.avax-test.network/ext/bc/C/rpc"),
+      network_id: "43113",
       skipDryRun: true,
-      gas: 1e7,
-      gasPrice: 1e9
-    },
+      gas: 7e6,
+      gasPrice: 26e9
+    }
   },
 
   // Set default mocha options here, use special reporters etc.

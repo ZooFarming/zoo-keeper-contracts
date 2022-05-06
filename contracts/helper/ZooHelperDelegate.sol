@@ -63,7 +63,7 @@ contract ZooHelperDelegate is Initializable, AccessControl, ZooHelperStorage {
         total = total.add(IERC20(zooToken).balanceOf(user));
 
         // pending zoo
-        total = total.add(getPendingZoo(user));
+        // total = total.add(getPendingZoo(user));
 
         // farming zoo in zoo/wasp pool
         total = total.add(getFarmingZoo(user));
@@ -75,7 +75,7 @@ contract ZooHelperDelegate is Initializable, AccessControl, ZooHelperStorage {
         total = total.add(getSafariZoo(user));
 
         // Alchemy
-        total = total.add(getAlchemistLab(user));
+        // total = total.add(getAlchemistLab(user));
 
         return total;
     }

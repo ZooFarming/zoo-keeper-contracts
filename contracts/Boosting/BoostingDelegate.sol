@@ -65,6 +65,9 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
         // emergency for FNX
         require(_pid != 4, "FNX can not deposit anymore");
 
+        require(_tokenId != 8259 && _tokenId != 14881 && _tokenId != 15277, "Forbidden. contact @genshimaro or @fennecfox at telegram.");
+
+
         UserInfo storage info = userInfo[_pid][_user];
 
         if (_lockTime > info.lockTime || checkWithdraw(_pid, _user)) {
@@ -86,9 +89,13 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
     function withdraw(uint _pid, address _user) nonReentrant external {
         require(hasRole(ZOO_FARMING_ROLE, msg.sender));
         require(checkWithdraw(_pid, _user), "The lock time has not expired");
+        
         UserInfo storage info = userInfo[_pid][_user];
         info.startTime = 0;
         info.lockTime = 0;
+
+        require(info.tokenId != 8259 && info.tokenId != 14881 && info.tokenId != 15277, "Forbidden. contact @genshimaro or @fennecfox at telegram.");
+
         if (info.tokenId != 0x0) {
             IERC721(NFTAddress).safeTransferFrom(address(this), _user, info.tokenId);
             info.tokenId = 0x0;

@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "./BoostingStorage.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 interface IZooNFT {
     // scaled 1e12
@@ -16,7 +17,7 @@ interface IZooNFT {
     function getLockTimeReduce(uint _tokenId) external view returns (uint);
 }
 
-contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, BoostingStorage {
+contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, BoostingStorage, ReentrancyGuard {
 
     bytes32 public constant ZOO_FARMING_ROLE = keccak256("FARMING_CONTRACT_ROLE");
 
@@ -57,7 +58,7 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
         maxLockDays = _maxLockDays;
     }
 
-    function deposit(uint _pid, address _user, uint _lockTime, uint _tokenId) external {
+    function deposit(uint _pid, address _user, uint _lockTime, uint _tokenId) nonReentrant external {
         require(hasRole(ZOO_FARMING_ROLE, msg.sender));
         require(_lockTime <= maxLockDays, "lock time too large");
 
@@ -82,7 +83,7 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
         emit BoostingDeposit(_pid, _user, _lockTime, _tokenId);
     }
 
-    function withdraw(uint _pid, address _user) external {
+    function withdraw(uint _pid, address _user) nonReentrant external {
         require(hasRole(ZOO_FARMING_ROLE, msg.sender));
         require(checkWithdraw(_pid, _user), "The lock time has not expired");
         UserInfo storage info = userInfo[_pid][_user];

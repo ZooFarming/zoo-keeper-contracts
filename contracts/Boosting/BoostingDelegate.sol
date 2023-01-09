@@ -116,7 +116,7 @@ contract BoostingDelegate is Initializable, AccessControl, ERC721Holder, Boostin
             return true;
         }
 
-        if (_pid <= 2 || _pid == 5 || _pid == 6) {
+        if (_pid <= 2 || _pid == 5 || _pid == 6 || _pid == 7) {
             return true;
         }
 

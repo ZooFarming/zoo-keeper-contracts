@@ -266,6 +266,7 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         uint burnFee = currentPrice * stakingFee / 10000;
         if (_type != 3) {
             stakePrice = stakePrice - burnFee;
+            IERC20(zooToken).transferFrom(msg.sender, address(this), burnFee);
             IZooToken(zooToken).burn(burnFee);
         }
         stakeInfo[msg.sender][_type].stakeAmount = stakePrice;

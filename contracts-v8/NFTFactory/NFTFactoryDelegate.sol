@@ -233,6 +233,11 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         }
     }
 
+    function configStakingFee(uint _fee) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        stakingFee = _fee;
+    }
+
     /// @dev Stake ZOO to get NFT
     /// @param _type value: 
     /// 0: lock x10 48 hours to get golden chest
@@ -258,6 +263,11 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
         stakeInfo[msg.sender][_type].startTime = block.timestamp;
 
         uint stakePrice = currentPrice * stakePlan[_type].priceMul / stakePlan[_type].priceDiv;
+        uint burnFee = currentPrice * stakingFee / 10000;
+        if (_type != 3) {
+            stakePrice = stakePrice - burnFee;
+            IZooToken(zooToken).burn(burnFee);
+        }
         stakeInfo[msg.sender][_type].stakeAmount = stakePrice;
         stakeInfo[msg.sender][_type].lockTime = stakePlan[_type].lockTime;
 

@@ -102,4 +102,6 @@ contract NFTFactoryStorage {
     uint32 numWords = 1;
 
     VRFCoordinatorV2Interface COORDINATOR;
+
+    uint256 public stakingFee; //scaled by 10000, 0.03% = 3
 }

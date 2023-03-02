@@ -95,7 +95,7 @@ contract NFTFactoryStorage {
     
     // A reasonable default is 100000, but this value could be different
     // on other networks.
-    uint32 callbackGasLimit = 2500000;
+    uint32 public callbackGasLimit = 2500000;
     
     // For this example, retrieve 2 random values in one request.
     // Cannot exceed VRFCoordinatorV2.MAX_NUM_WORDS.

@@ -28,18 +28,18 @@ interface IZooNFTMint {
 contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFactoryStorage {
     using SafeERC20 for IERC20;
 
-    // Avalanche Fuji coordinator. For other networks,
+    // Avalanche mainnet coordinator. For other networks,
     // see https://docs.chain.link/docs/vrf-contracts/#configurations
-    address constant vrfCoordinator = 0x2eD832Ba664535e5886b75D64C46EB9a228C2610;
+    address constant vrfCoordinator = 0xd5D517aBE5cF79B7e95eC98dB0f0277788aFF634;
 
-    // Avalanche Fuji LINK token contract. For other networks, see
+    // Avalanche mainnet LINK token contract. For other networks, see
     // https://docs.chain.link/docs/vrf-contracts/#configurations
-    address constant link_token_contract = 0x0b9d5D9136855f6FEc3c0993feE6E9CE8a297846;
+    address constant link_token_contract = 0x5947BB275c521040051D82396192181b413227A3;
 
     // The gas lane to use, which specifies the maximum gas price to bump to.
     // For a list of available gas lanes on each network,
     // see https://docs.chain.link/docs/vrf-contracts/#configurations
-    bytes32 constant keyHash = 0x354d2f95da55398f44b7cff77da56283d9c6c829a4bdf1bbcaf2ad6a4d081f61;
+    bytes32 constant public keyHash = 0x83250c5584ffa93feb6ee082981c5ebe484c865196750b39835ad4f13780435d;
 
     event MintNFT(uint indexed level, uint indexed category, uint indexed item, uint random, uint tokenId, uint itemSupply);
 
@@ -534,6 +534,11 @@ contract NFTFactoryDelegate is Initializable, AccessControl, ERC721Holder, NFTFa
     ) internal {
         agentMint(randomWords[0]);
     }    
+
+    function debugMint(uint _seed) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        agentMint(_seed);
+    }
 
     function agentMint(uint _seed) internal {
         _foundationSeed = _seed;

@@ -83,7 +83,7 @@ contract NFTFactoryStorage {
     }
 
     // request index => request info
-    mapping(uint => MintRequestInfoV2) mintRequestInfoV2;
+    mapping(uint => MintRequestInfoV2) public mintRequestInfoV2;
 
     bytes32 public constant FACTORY_MINTER_ROLE = keccak256("FACTORY_MINTER_ROLE");
 
